@@ -1,4 +1,3 @@
-package com.risetek.nfc.tlv;
 
 import java.io.*;
 import java.util.ArrayList;

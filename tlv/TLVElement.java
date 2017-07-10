@@ -1,4 +1,3 @@
-package com.risetek.nfc.tlv;
 
 import java.util.ArrayList;
 
@@ -10,9 +9,6 @@ import java.util.ArrayList;
  *
  *        &nbsp;&nbsp;&nbsp;&nbsp;TLVElement节点元素
  *
- *        <p>
- *        <center>COPYRIGHT (C) 2000-2006,CoreTek Systems Inc.All Rights
- *        Reserved.</center>
  *        </p>
  * @author wangl
  * @version eJPos SDK1.0

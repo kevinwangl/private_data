@@ -1,4 +1,3 @@
-package com.risetek.nfc.tlv;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -12,10 +11,6 @@ import java.io.OutputStream;
  *
  *        &nbsp;&nbsp;&nbsp;&nbsp;TLVSerializerTLV编码数据保存
  *
- *        <p>
- *        <center>COPYRIGHT (C) 2000-2006,CoreTek Systems Inc.All Rights
- *        Reserved.</center>
- *        </p>
  * @author wangl
  * @version eJPos SDK1.0
  * @see

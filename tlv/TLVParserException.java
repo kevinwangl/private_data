@@ -1,5 +1,3 @@
-package com.risetek.nfc.tlv;
-
 /**
  *
  * @brief <p>
@@ -8,10 +6,6 @@ package com.risetek.nfc.tlv;
  *
  *        &nbsp;&nbsp;&nbsp;&nbsp;TLVParserException解析器异常信息
  *
- *        <p>
- *        <center>COPYRIGHT (C) 2000-2006,CoreTek Systems Inc.All Rights
- *        Reserved.</center>
- *        </p>
  * @author wangl
  * @version eJPos SDK1.0
  * @see
