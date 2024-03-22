@@ -36,6 +36,7 @@ public class Main {
                    TLVElement child_element = child.get(0);
                    String value = TLVUtils.convertBytesToString(child_element.getValue());
                    System.out.println("Tag = "+tag);
+                   System.out.println("Child Tag = "+child_element.getTag());
                    System.out.println("Value = "+value);
                 }
             }
