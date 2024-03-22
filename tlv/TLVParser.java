@@ -15,7 +15,6 @@ import java.util.Vector;
  *
  * @author wangl
  * @version eJPos SDK1.0
- * @see
  * @since 2008-6-23
  */
 public class TLVParser {
@@ -25,7 +24,7 @@ public class TLVParser {
 	 *
 	 * @brief 构造函数
 	 *
-	 * @param in
+	 * @param "in"
 	 *            输入数据流
 	 */
 	public TLVParser(InputStream input) {
@@ -202,8 +201,7 @@ public class TLVParser {
 	/**
 	 * @brief 解析TLVElement
 	 *
-	 * @param in
-	 *            输入数据流
+	 * @param "in" 输入数据流
 	 * @throws TLVParserException
 	 *             解析失败
 	 */
