@@ -1,0 +1,12 @@
+# Tushare数据源配置
+
+[tushare]
+api_url = "http://api.tushare.pro"
+# Token从环境变量读取: TUSHARE_TOKEN
+timeout_secs = 30
+retry_times = 3
+requests_per_minute = 200
+
+[cache]
+enabled = true
+ttl_secs = 86400  # 24小时

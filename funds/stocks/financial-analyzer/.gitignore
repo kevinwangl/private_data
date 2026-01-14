@@ -1,0 +1,34 @@
+# 忽略编译输出
+/target/
+**/*.rs.bk
+*.pdb
+
+# 忽略Cargo.lock（库项目）
+# Cargo.lock
+
+# 忽略IDE配置
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 忽略日志文件
+/logs/*.log
+
+# 忽略输出文件
+*.xlsx
+*.xls
+*.csv
+
+# 忽略临时文件
+*.tmp
+*.temp
+
+# 忽略系统文件
+.DS_Store
+Thumbs.db
+
+# 忽略环境变量文件
+.env
+.env.local

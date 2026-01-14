@@ -1,0 +1,47 @@
+[package]
+name = "financial-analyzer"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+# 异步运行时
+tokio = { version = "1.35", features = ["full"] }
+async-trait = "0.1"
+
+# HTTP客户端
+reqwest = { version = "0.11", features = ["json"] }
+
+# 序列化
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# 数值计算
+rust_decimal = "1.33"
+rust_decimal_macros = "1.33"
+
+# 日期时间
+chrono = { version = "0.4", features = ["serde"] }
+
+# Excel操作
+rust_xlsxwriter = "0.60"
+
+# CLI
+clap = { version = "4.4", features = ["derive"] }
+
+# 日志
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# 错误处理
+anyhow = "1.0"
+thiserror = "1.0"
+
+# 配置管理
+config = "0.14"
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[features]
+default = []

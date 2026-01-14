@@ -1,0 +1,40 @@
+# 验证规则配置
+
+[allow_negative]
+accounts = [
+    "应付账款",
+    "短期借款",
+    "长期借款",
+    "应付票据",
+    "应付债券",
+    "递延所得税负债",
+]
+
+[required_accounts]
+balance_sheet = [
+    "资产总计",
+    "负债合计",
+    "所有者权益合计",
+    "货币资金",
+]
+
+income_statement = [
+    "营业收入",
+    "营业成本",
+    "净利润",
+]
+
+cashflow_statement = [
+    "经营活动产生的现金流量净额",
+]
+
+[ratio_ranges]
+current_ratio = { min = 0.5, max = 5.0 }
+debt_to_asset = { min = 0.0, max = 0.9 }
+gross_margin = { min = 0.0, max = 1.0 }
+roe = { min = -0.5, max = 1.0 }
+
+[yoy_thresholds]
+revenue_change = 100.0
+profit_change = 150.0
+asset_change = 80.0
