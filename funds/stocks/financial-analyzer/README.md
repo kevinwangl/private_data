@@ -8,12 +8,13 @@
 - 核心数据模型（资产负债表、利润表、现金流量表）
 - **多数据源支持**
   - Mock数据源（测试）
-  - Tushare数据源（真实A股数据）
+  - Tushare数据源（真实A股数据，需Token）
+  - **AKShare数据源（完全免费，无需Token）** ⭐ NEW
 - **财务分析**
   - 资产结构分析
   - 利润分析
   - 现金流分析
-- **估值模型** (NEW)
+- **估值模型**
   - DCF估值法（现金流折现）
   - 唐朝估值法（低估/高估价格）
 - **数据验证**
@@ -22,9 +23,9 @@
   - 数值合理性检查
   - 可靠性评分
 - **Excel报告生成**
-  - 资产结构分析工作表
-  - 利润分析工作表
-  - 估值分析工作表 (NEW)
+  - 5个专业工作表
+  - 完整格式和公式
+  - 黄色高亮关键指标
 - CLI命令行接口
 - 配置管理系统
 
@@ -49,30 +50,48 @@ cargo build --release
 cargo run -- analyze \
   --stock 600519.SH \
   --years 2019,2018,2017 \
-  --source mock \
-  --output ./output.xlsx
+  --source mock
 
-# 使用Tushare真实数据
+# 使用AKShare免费数据（推荐）⭐
+# 需要先安装: pip3 install akshare
+cargo run -- analyze \
+  --stock 600519.SH \
+  --years 2019,2018,2017 \
+  --source akshare
+
+# 使用Tushare真实数据（需Token）
 export TUSHARE_TOKEN="your_token_here"
 cargo run -- analyze \
   --stock 600519.SH \
   --years 2019,2018,2017 \
-  --source tushare \
-  --output ./output.xlsx
+  --source tushare
 
 # 启用数据验证
 cargo run -- analyze \
   --stock 600519.SH \
   --years 2019,2018,2017 \
-  --source tushare \
-  --output ./output.xlsx \
+  --source akshare \
   --enable-validation
 
 # 查看帮助
 cargo run -- --help
 ```
 
-### Tushare配置
+### 数据源配置
+
+#### AKShare（推荐，完全免费）⭐
+
+详细配置请查看 [AKShare使用指南](./AKSHARE_GUIDE.md)
+
+```bash
+# 1. 安装Python依赖
+pip3 install akshare
+
+# 2. 直接使用（无需Token）
+cargo run -- analyze --stock 600519.SH --years 2019,2018,2017 --source akshare
+```
+
+#### Tushare（需注册）
 
 详细配置请查看 [Tushare使用指南](./TUSHARE_GUIDE.md)
 
@@ -84,7 +103,7 @@ cargo run -- --help
 export TUSHARE_TOKEN="your_token_here"
 
 # 3. 运行分析
-cargo run -- analyze --stock 600519.SH --years 2019 --source tushare --output ./output.xlsx
+cargo run -- analyze --stock 600519.SH --years 2019 --source tushare
 ```
 
 ## 项目结构
@@ -96,7 +115,9 @@ financial-analyzer/
 │   │   └── models.rs    # 财务报表数据结构
 │   ├── data_source/     # 数据源抽象层
 │   │   ├── traits.rs    # DataSource trait定义
-│   │   └── mock.rs      # Mock数据源实现
+│   │   ├── mock.rs      # Mock数据源实现
+│   │   ├── tushare.rs   # Tushare数据源
+│   │   └── akshare.rs   # AKShare数据源 ⭐ NEW
 │   ├── analyzer/        # 分析引擎
 │   │   ├── calculator.rs # 比率计算器
 │   │   └── mod.rs       # 主分析器

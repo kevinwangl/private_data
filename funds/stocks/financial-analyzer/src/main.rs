@@ -9,7 +9,7 @@ mod validation;
 use anyhow::Result;
 use clap::Parser;
 use cli::{Cli, Commands};
-use data_source::{DataSource, MockDataSource, TushareClient};
+use data_source::{DataSource, MockDataSource, TushareClient, AkshareClient};
 use analyzer::FinancialAnalyzer;
 use excel::ExcelWriter;
 use utils::Config;
@@ -56,9 +56,13 @@ async fn main() -> Result<()> {
                         }
                     }
                 }
+                "akshare" => {
+                    println!("✓ AKShare客户端已初始化");
+                    Box::new(AkshareClient::new())
+                }
                 _ => {
                     eprintln!("❌ 不支持的数据源: {}", source);
-                    eprintln!("💡 当前支持: mock, tushare");
+                    eprintln!("💡 当前支持: mock, tushare, akshare");
                     std::process::exit(1);
                 }
             };

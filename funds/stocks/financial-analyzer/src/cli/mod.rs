@@ -21,7 +21,7 @@ pub enum Commands {
         #[arg(short, long, value_delimiter = ',')]
         years: Vec<i32>,
 
-        /// 数据源
+        /// 数据源 (mock, tushare, akshare)
         #[arg(long, default_value = "mock")]
         source: String,
 
