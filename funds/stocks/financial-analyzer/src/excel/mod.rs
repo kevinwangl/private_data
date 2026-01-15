@@ -324,16 +324,7 @@ impl ExcelWriter {
             .unwrap_or(0.0)
     }
 
-    // Helper: Get balance sheet value
-    fn get_balance_value(&self, statements: &[FinancialStatement], year_idx: usize, account: &str) -> f64 {
-        statements
-            .iter()
-            .filter(|s| s.report_type == ReportType::BalanceSheet)
-            .nth(year_idx)
-            .and_then(|s| s.items.get(account))
-            .and_then(|v| v.to_f64())
-            .unwrap_or(0.0)
-    }
+
 
     // Sheet 3: 利润&现金流结构分析
     fn write_sheet3_profit_cashflow(&self, workbook: &mut Workbook, result: &AnalysisResult) -> Result<()> {
@@ -562,8 +553,8 @@ impl ExcelWriter {
         worksheet.write_string(19, 5, "DCF估值")?;
         worksheet.write_string(19, 6, "总股本")?;
         // 从资产负债表获取实际总股本
-        let share_capital = self.get_balance_value(&result.statements, 0, "股本");
-        let paid_in_capital = self.get_balance_value(&result.statements, 0, "实收资本(或股本)");
+        let share_capital = self.get_balance_sheet_value(&result.statements, 0, "股本");
+        let paid_in_capital = self.get_balance_sheet_value(&result.statements, 0, "实收资本(或股本)");
         let total_shares = if share_capital > 0.0 {
             share_capital
         } else if paid_in_capital > 0.0 {

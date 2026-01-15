@@ -125,6 +125,8 @@ struct AkshareIncomeStatement {
     sales_expense: Option<f64>,
     #[serde(rename = "ADMIN_EXPENSE")]
     admin_expense: Option<f64>,
+    #[serde(rename = "BIZ_ADMIN_EXPENSE")]
+    biz_admin_expense: Option<f64>,
     #[serde(rename = "RD_EXPENSE")]
     rd_expense: Option<f64>,
     #[serde(rename = "OTHER_INCOME")]
@@ -318,6 +320,7 @@ for _, row in df.iterrows():
         'FINANCE_EXPENSE': safe_float(row.get('财务费用')),
         'SALES_EXPENSE': safe_float(row.get('销售费用')) or 0,
         'ADMIN_EXPENSE': safe_float(row.get('管理费用')) or safe_float(row.get('业务及管理费')),
+        'BIZ_ADMIN_EXPENSE': safe_float(row.get('业务及管理费')),
         'RD_EXPENSE': safe_float(row.get('研发费用')),
         'OTHER_INCOME': safe_float(row.get('其他收益')),
         'INVEST_INCOME': safe_float(row.get('投资收益')),
@@ -510,6 +513,7 @@ impl DataSource for AkshareClient {
             let finance_expense = Decimal::from_f64_retain(item.finance_expense.unwrap_or(0.0)).unwrap_or(Decimal::ZERO);
             let sales_expense = Decimal::from_f64_retain(item.sales_expense.unwrap_or(0.0)).unwrap_or(Decimal::ZERO);
             let admin_expense = Decimal::from_f64_retain(item.admin_expense.unwrap_or(0.0)).unwrap_or(Decimal::ZERO);
+            let biz_admin_expense = Decimal::from_f64_retain(item.biz_admin_expense.unwrap_or(0.0)).unwrap_or(Decimal::ZERO);
             let rd_expense = Decimal::from_f64_retain(item.rd_expense.unwrap_or(0.0)).unwrap_or(Decimal::ZERO);
             let main_cost = Decimal::from_f64_retain(item.main_operate_cost.unwrap_or(0.0)).unwrap_or(Decimal::ZERO);
             let operate_profit = Decimal::from_f64_retain(item.operate_profit.unwrap_or(0.0)).unwrap_or(Decimal::ZERO);
@@ -524,6 +528,7 @@ impl DataSource for AkshareClient {
             items_map.insert("财务费用".to_string(), finance_expense);
             items_map.insert("销售费用".to_string(), sales_expense);
             items_map.insert("管理费用".to_string(), admin_expense);
+            items_map.insert("业务及管理费".to_string(), biz_admin_expense);
             items_map.insert("研发费用".to_string(), rd_expense);
             items_map.insert("其他收益".to_string(), Decimal::from_f64_retain(item.other_income.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
             items_map.insert("投资收益".to_string(), Decimal::from_f64_retain(item.invest_income.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
@@ -545,7 +550,7 @@ impl DataSource for AkshareClient {
                 statement,
                 revenue,
                 operating_cost,
-                gross_profit: revenue - operating_cost,
+                gross_profit: revenue - main_cost,  // 毛利 = 营业总收入 - 营业成本
                 core_profit: net_profit,
                 net_profit,
             });

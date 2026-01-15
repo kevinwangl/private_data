@@ -238,27 +238,45 @@ impl TextReporter {
         }).collect();
         report.push_str(&format!("{:<30} {:>18} {:>18} {:>18}\n", "净利润率", npm[0], npm[1], npm[2]));
         
-        // 销售费用率 - 3年数据
+        // 销售费用率 - 3年数据（保险公司无此项）
         let sales_ratio: Vec<String> = (0..3).map(|i| {
             if let (Some(revenue), Some(sales_exp)) = (
                 Self::get_raw_income_value(&result.statements, i, "营业总收入"),
                 Self::get_raw_income_value(&result.statements, i, "销售费用")
             ) {
-                if revenue > 0.0 { format!("{:.2}%", sales_exp / revenue * 100.0) } else { "-".to_string() }
+                if revenue > 0.0 && sales_exp > 0.0 { format!("{:.2}%", sales_exp / revenue * 100.0) } else { "-".to_string() }
             } else { "-".to_string() }
         }).collect();
-        report.push_str(&format!("{:<30} {:>18} {:>18} {:>18}\n", "销售费用率", sales_ratio[0], sales_ratio[1], sales_ratio[2]));
+        // 只有当有数据时才输出
+        if sales_ratio.iter().any(|s| s != "-") {
+            report.push_str(&format!("{:<30} {:>18} {:>18} {:>18}\n", "销售费用率", sales_ratio[0], sales_ratio[1], sales_ratio[2]));
+        }
         
-        // 管理费用率 - 3年数据
+        // 管理费用率 - 3年数据（保险公司用业务及管理费）
         let admin_ratio: Vec<String> = (0..3).map(|i| {
-            if let (Some(revenue), Some(admin_exp)) = (
-                Self::get_raw_income_value(&result.statements, i, "营业总收入"),
-                Self::get_raw_income_value(&result.statements, i, "管理费用")
-            ) {
-                if revenue > 0.0 { format!("{:.2}%", admin_exp / revenue * 100.0) } else { "-".to_string() }
-            } else { "-".to_string() }
+            let revenue = Self::get_raw_income_value(&result.statements, i, "营业总收入");
+            let admin_exp = Self::get_raw_income_value(&result.statements, i, "管理费用");
+            if let (Some(rev), Some(exp)) = (revenue, admin_exp) {
+                if rev > 0.0 && exp > 0.0 { return format!("{:.2}%", exp / rev * 100.0); }
+            }
+            "-".to_string()
         }).collect();
-        report.push_str(&format!("{:<30} {:>18} {:>18} {:>18}\n", "管理费用率", admin_ratio[0], admin_ratio[1], admin_ratio[2]));
+        if admin_ratio.iter().any(|s| s != "-") {
+            report.push_str(&format!("{:<30} {:>18} {:>18} {:>18}\n", "管理费用率", admin_ratio[0], admin_ratio[1], admin_ratio[2]));
+        }
+        
+        // 业务及管理费率 - 保险公司专用
+        let biz_admin_ratio: Vec<String> = (0..3).map(|i| {
+            let revenue = Self::get_raw_income_value(&result.statements, i, "营业总收入");
+            let biz_exp = Self::get_raw_income_value(&result.statements, i, "业务及管理费");
+            if let (Some(rev), Some(exp)) = (revenue, biz_exp) {
+                if rev > 0.0 && exp > 0.0 { return format!("{:.2}%", exp / rev * 100.0); }
+            }
+            "-".to_string()
+        }).collect();
+        if biz_admin_ratio.iter().any(|s| s != "-") {
+            report.push_str(&format!("{:<30} {:>18} {:>18} {:>18}\n", "业务及管理费率", biz_admin_ratio[0], biz_admin_ratio[1], biz_admin_ratio[2]));
+        }
     }
     
     fn append_dcf(report: &mut String, result: &AnalysisResult) {
