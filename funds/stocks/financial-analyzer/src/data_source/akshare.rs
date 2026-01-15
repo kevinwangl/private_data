@@ -93,6 +93,14 @@ struct AkshareBalanceSheet {
     short_term_loan: Option<f64>,
     #[serde(rename = "NON_CURRENT_LIABILITIES_DUE_WITHIN_ONE_YEAR")]
     non_current_liabilities_due_within_one_year: Option<f64>,
+    #[serde(rename = "CURRENT_LIABILITIES")]
+    current_liabilities: Option<f64>,
+    #[serde(rename = "NON_CURRENT_LIABILITIES")]
+    non_current_liabilities: Option<f64>,
+    #[serde(rename = "CURRENT_ASSETS")]
+    current_assets: Option<f64>,
+    #[serde(rename = "NON_CURRENT_ASSETS")]
+    non_current_assets: Option<f64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -103,6 +111,10 @@ struct AkshareIncomeStatement {
     revenue: Option<f64>,
     #[serde(rename = "OPERATE_COST")]
     operating_cost: Option<f64>,
+    #[serde(rename = "MAIN_OPERATE_COST")]
+    main_operate_cost: Option<f64>,
+    #[serde(rename = "OPERATE_PROFIT")]
+    operate_profit: Option<f64>,
     #[serde(rename = "NETPROFIT")]
     net_profit: Option<f64>,
     #[serde(rename = "TAX")]
@@ -115,6 +127,22 @@ struct AkshareIncomeStatement {
     admin_expense: Option<f64>,
     #[serde(rename = "RD_EXPENSE")]
     rd_expense: Option<f64>,
+    #[serde(rename = "OTHER_INCOME")]
+    other_income: Option<f64>,
+    #[serde(rename = "INVEST_INCOME")]
+    invest_income: Option<f64>,
+    #[serde(rename = "FAIR_VALUE_CHANGE")]
+    fair_value_change: Option<f64>,
+    #[serde(rename = "ASSET_DISPOSAL_INCOME")]
+    asset_disposal_income: Option<f64>,
+    #[serde(rename = "ASSET_IMPAIRMENT_LOSS")]
+    asset_impairment_loss: Option<f64>,
+    #[serde(rename = "CREDIT_IMPAIRMENT_LOSS")]
+    credit_impairment_loss: Option<f64>,
+    #[serde(rename = "NON_OPERATING_INCOME")]
+    non_operating_income: Option<f64>,
+    #[serde(rename = "NON_OPERATING_EXPENSE")]
+    non_operating_expense: Option<f64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -127,6 +155,20 @@ struct AkshareCashflow {
     investing_cashflow: Option<f64>,
     #[serde(rename = "FINANCE_CASH_FLOW")]
     financing_cashflow: Option<f64>,
+    #[serde(rename = "CAPEX")]
+    capex: Option<f64>,
+    #[serde(rename = "INVEST_PAY_CASH")]
+    invest_pay_cash: Option<f64>,
+    #[serde(rename = "RECEIVE_INVEST_CASH")]
+    receive_invest_cash: Option<f64>,
+    #[serde(rename = "RECEIVE_LOAN_CASH")]
+    receive_loan_cash: Option<f64>,
+    #[serde(rename = "REPAY_DEBT_CASH")]
+    repay_debt_cash: Option<f64>,
+    #[serde(rename = "DISTRIBUTE_DIVIDEND_CASH")]
+    distribute_dividend_cash: Option<f64>,
+    #[serde(rename = "PAY_OTHER_FINANCE_CASH")]
+    pay_other_finance_cash: Option<f64>,
 }
 
 impl AkshareClient {
@@ -192,12 +234,12 @@ for _, row in df.iterrows():
         'REPORT_DATE': str(row['报告日']),
         'TOTAL_ASSETS': safe_float(row.get('资产总计')),
         'TOTAL_LIABILITIES': safe_float(row.get('负债合计')),
-        'TOTAL_EQUITY': safe_float(row.get('所有者权益(或股东权益)合计')),
+        'TOTAL_EQUITY': safe_float(row.get('所有者权益(或股东权益)合计')) or safe_float(row.get('所有者权益合计')),
         'MONETARYFUNDS': safe_float(row.get('货币资金')),
-        'FIXED_ASSETS': safe_float(row.get('固定资产')),
+        'FIXED_ASSETS': safe_float(row.get('固定资产净额')) or safe_float(row.get('固定资产及清理合计')),
         'ACCOUNTS_RECE': safe_float(row.get('应收账款')),
         'INVENTORY': safe_float(row.get('存货')),
-        'SHARE_CAPITAL': safe_float(row.get('实收资本(或股本)')),
+        'SHARE_CAPITAL': safe_float(row.get('实收资本(或股本)')) or safe_float(row.get('股本')),
         'NOTES_RECEIVABLE': safe_float(row.get('应收票据')),
         'PREPAYMENTS': safe_float(row.get('预付款项')),
         'INTANGIBLE_ASSETS': safe_float(row.get('无形资产')),
@@ -208,25 +250,29 @@ for _, row in df.iterrows():
         'LONG_TERM_RECEIVABLES': safe_float(row.get('长期应收款')),
         'INTEREST_RECEIVABLE': safe_float(row.get('应收利息')),
         'DIVIDEND_RECEIVABLE': safe_float(row.get('应收股利')),
-        'DEFERRED_TAX_ASSETS': safe_float(row.get('递延所得税资产')),
+        'DEFERRED_TAX_ASSETS': safe_float(row.get('递延所得税资产')) or safe_float(row.get('递延税款借项')),
         'NON_CURRENT_ASSETS_DUE_WITHIN_ONE_YEAR': safe_float(row.get('一年内到期的非流动资产')),
         'OTHER_NON_CURRENT_ASSETS': safe_float(row.get('其他非流动资产')),
-        'NOTES_PAYABLE': safe_float(row.get('应付票据')),
+        'NOTES_PAYABLE': safe_float(row.get('应付票据')) or safe_float(row.get('应付票据及应付账款')),
         'ACCOUNTS_PAYABLE': safe_float(row.get('应付账款')),
         'ADVANCE_RECEIPTS': safe_float(row.get('预收款项')),
         'EMPLOYEE_PAYABLE': safe_float(row.get('应付职工薪酬')),
         'TAX_PAYABLE': safe_float(row.get('应交税费')),
         'CONTRACT_LIABILITIES': safe_float(row.get('合同负债')),
-        'DEFERRED_TAX_LIABILITIES': safe_float(row.get('递延所得税负债')),
-        'DEFERRED_REVENUE': safe_float(row.get('长期递延收益')),
+        'DEFERRED_TAX_LIABILITIES': safe_float(row.get('递延所得税负债')) or safe_float(row.get('递延税款贷项')),
+        'DEFERRED_REVENUE': safe_float(row.get('长期递延收益')) or safe_float(row.get('递延收益')),
         'INTEREST_PAYABLE': safe_float(row.get('应付利息')),
         'DIVIDEND_PAYABLE': safe_float(row.get('应付股利')),
-        'BONDS_PAYABLE': safe_float(row.get('应付债券')),
+        'BONDS_PAYABLE': safe_float(row.get('应付债券')) or safe_float(row.get('应付债券款')),
         'TRADING_FINANCIAL_LIABILITIES': safe_float(row.get('交易性金融负债')),
         'LONG_TERM_PAYABLE': safe_float(row.get('长期应付款')),
         'LONG_TERM_LOAN': safe_float(row.get('长期借款')),
         'SHORT_TERM_LOAN': safe_float(row.get('短期借款')),
         'NON_CURRENT_LIABILITIES_DUE_WITHIN_ONE_YEAR': safe_float(row.get('一年内到期的非流动负债')),
+        'CURRENT_LIABILITIES': safe_float(row.get('流动负债合计')),
+        'NON_CURRENT_LIABILITIES': safe_float(row.get('非流动负债合计')),
+        'CURRENT_ASSETS': safe_float(row.get('流动资产合计')),
+        'NON_CURRENT_ASSETS': safe_float(row.get('非流动资产合计')),
     }})
 print(json.dumps(result))
 "#,
@@ -263,14 +309,24 @@ def safe_float(val):
 for _, row in df.iterrows():
     result.append({{
         'REPORT_DATE': str(row['报告日']),
-        'TOTAL_OPERATE_INCOME': safe_float(row.get('营业总收入')),
-        'OPERATE_COST': safe_float(row.get('营业总成本')),
+        'TOTAL_OPERATE_INCOME': safe_float(row.get('营业总收入')) or safe_float(row.get('营业收入')),
+        'OPERATE_COST': safe_float(row.get('营业总成本')) or safe_float(row.get('营业支出')),
+        'MAIN_OPERATE_COST': safe_float(row.get('营业成本')),
+        'OPERATE_PROFIT': safe_float(row.get('营业利润')),
         'NETPROFIT': safe_float(row.get('净利润')),
         'TAX': safe_float(row.get('营业税金及附加')),
         'FINANCE_EXPENSE': safe_float(row.get('财务费用')),
-        'SALES_EXPENSE': safe_float(row.get('销售费用')),
-        'ADMIN_EXPENSE': safe_float(row.get('管理费用')),
+        'SALES_EXPENSE': safe_float(row.get('销售费用')) or 0,
+        'ADMIN_EXPENSE': safe_float(row.get('管理费用')) or safe_float(row.get('业务及管理费')),
         'RD_EXPENSE': safe_float(row.get('研发费用')),
+        'OTHER_INCOME': safe_float(row.get('其他收益')),
+        'INVEST_INCOME': safe_float(row.get('投资收益')),
+        'FAIR_VALUE_CHANGE': safe_float(row.get('公允价值变动收益')),
+        'ASSET_DISPOSAL_INCOME': safe_float(row.get('资产处置收益')),
+        'ASSET_IMPAIRMENT_LOSS': safe_float(row.get('资产减值损失')),
+        'CREDIT_IMPAIRMENT_LOSS': safe_float(row.get('信用减值损失')),
+        'NON_OPERATING_INCOME': safe_float(row.get('营业外收入')) or safe_float(row.get('加:营业外收入')),
+        'NON_OPERATING_EXPENSE': safe_float(row.get('营业外支出')) or safe_float(row.get('减:营业外支出')),
     }})
 print(json.dumps(result))
 "#,
@@ -310,6 +366,13 @@ for _, row in df.iterrows():
         'OPERATE_CASH_FLOW': safe_float(row.get('经营活动产生的现金流量净额')),
         'INVEST_CASH_FLOW': safe_float(row.get('投资活动产生的现金流量净额')),
         'FINANCE_CASH_FLOW': safe_float(row.get('筹资活动产生的现金流量净额')),
+        'CAPEX': safe_float(row.get('购建固定资产、无形资产和其他长期资产所支付的现金')) or safe_float(row.get('购建固定资产、无形资产和其他长期资产支付的现金')),
+        'INVEST_PAY_CASH': safe_float(row.get('投资所支付的现金')),
+        'RECEIVE_INVEST_CASH': safe_float(row.get('吸收投资收到的现金')),
+        'RECEIVE_LOAN_CASH': safe_float(row.get('取得借款收到的现金')),
+        'REPAY_DEBT_CASH': safe_float(row.get('偿还债务支付的现金')),
+        'DISTRIBUTE_DIVIDEND_CASH': safe_float(row.get('分配股利、利润或偿付利息所支付的现金')),
+        'PAY_OTHER_FINANCE_CASH': safe_float(row.get('支付其他与筹资活动有关的现金')),
     }})
 print(json.dumps(result))
 "#,
@@ -394,6 +457,10 @@ impl DataSource for AkshareClient {
             items_map.insert("长期借款".to_string(), Decimal::from_f64_retain(item.long_term_loan.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
             items_map.insert("短期借款".to_string(), Decimal::from_f64_retain(item.short_term_loan.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
             items_map.insert("一年内到期的非流动负债".to_string(), Decimal::from_f64_retain(item.non_current_liabilities_due_within_one_year.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("流动负债合计".to_string(), Decimal::from_f64_retain(item.current_liabilities.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("非流动负债合计".to_string(), Decimal::from_f64_retain(item.non_current_liabilities.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("流动资产合计".to_string(), Decimal::from_f64_retain(item.current_assets.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("非流动资产合计".to_string(), Decimal::from_f64_retain(item.non_current_assets.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
 
             let statement = FinancialStatement {
                 stock_code: stock_code.to_string(),
@@ -444,16 +511,28 @@ impl DataSource for AkshareClient {
             let sales_expense = Decimal::from_f64_retain(item.sales_expense.unwrap_or(0.0)).unwrap_or(Decimal::ZERO);
             let admin_expense = Decimal::from_f64_retain(item.admin_expense.unwrap_or(0.0)).unwrap_or(Decimal::ZERO);
             let rd_expense = Decimal::from_f64_retain(item.rd_expense.unwrap_or(0.0)).unwrap_or(Decimal::ZERO);
+            let main_cost = Decimal::from_f64_retain(item.main_operate_cost.unwrap_or(0.0)).unwrap_or(Decimal::ZERO);
+            let operate_profit = Decimal::from_f64_retain(item.operate_profit.unwrap_or(0.0)).unwrap_or(Decimal::ZERO);
 
             let mut items_map = HashMap::new();
             items_map.insert("营业总收入".to_string(), revenue);
             items_map.insert("营业总成本".to_string(), operating_cost);
+            items_map.insert("营业成本".to_string(), main_cost);
+            items_map.insert("营业利润".to_string(), operate_profit);
             items_map.insert("净利润".to_string(), net_profit);
             items_map.insert("税金及附加".to_string(), tax);
             items_map.insert("财务费用".to_string(), finance_expense);
             items_map.insert("销售费用".to_string(), sales_expense);
             items_map.insert("管理费用".to_string(), admin_expense);
             items_map.insert("研发费用".to_string(), rd_expense);
+            items_map.insert("其他收益".to_string(), Decimal::from_f64_retain(item.other_income.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("投资收益".to_string(), Decimal::from_f64_retain(item.invest_income.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("公允价值变动收益".to_string(), Decimal::from_f64_retain(item.fair_value_change.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("资产处置收益".to_string(), Decimal::from_f64_retain(item.asset_disposal_income.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("资产减值损失".to_string(), Decimal::from_f64_retain(item.asset_impairment_loss.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("信用减值损失".to_string(), Decimal::from_f64_retain(item.credit_impairment_loss.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("营业外收入".to_string(), Decimal::from_f64_retain(item.non_operating_income.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("营业外支出".to_string(), Decimal::from_f64_retain(item.non_operating_expense.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
 
             let statement = FinancialStatement {
                 stock_code: stock_code.to_string(),
@@ -503,6 +582,15 @@ impl DataSource for AkshareClient {
 
             let mut items_map = HashMap::new();
             items_map.insert("经营活动产生的现金流量净额".to_string(), operating_cashflow);
+            items_map.insert("投资活动产生的现金流量净额".to_string(), investing_cashflow);
+            items_map.insert("筹资活动产生的现金流量净额".to_string(), financing_cashflow);
+            items_map.insert("购建固定资产、无形资产和其他长期资产支付的现金".to_string(), Decimal::from_f64_retain(item.capex.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("投资支付的现金".to_string(), Decimal::from_f64_retain(item.invest_pay_cash.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("吸收投资收到的现金".to_string(), Decimal::from_f64_retain(item.receive_invest_cash.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("取得借款收到的现金".to_string(), Decimal::from_f64_retain(item.receive_loan_cash.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("偿还债务支付的现金".to_string(), Decimal::from_f64_retain(item.repay_debt_cash.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("分配股利、利润或偿付利息支付的现金".to_string(), Decimal::from_f64_retain(item.distribute_dividend_cash.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("支付其他与筹资活动有关的现金".to_string(), Decimal::from_f64_retain(item.pay_other_finance_cash.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
 
             let statement = FinancialStatement {
                 stock_code: stock_code.to_string(),

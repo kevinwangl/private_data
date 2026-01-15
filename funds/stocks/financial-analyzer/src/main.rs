@@ -5,6 +5,7 @@ mod excel;
 mod cli;
 mod utils;
 mod validation;
+mod report;
 
 use anyhow::Result;
 use clap::Parser;
@@ -14,6 +15,7 @@ use analyzer::FinancialAnalyzer;
 use excel::ExcelWriter;
 use utils::Config;
 use validation::DataValidator;
+use report::TextReporter;
 use std::path::PathBuf;
 
 #[tokio::main]
@@ -94,6 +96,10 @@ async fn main() -> Result<()> {
             let output_path = output.unwrap_or_else(|| {
                 PathBuf::from(format!("{}_财务分析.xlsx", stock.replace(".", "_")))
             });
+
+            // 生成文本报告（控制台输出 + 保存文件）
+            println!("\n📊 生成文本报告...\n");
+            TextReporter::generate(&result, &stock, output_path.to_str().unwrap_or("output.xlsx"))?;
 
             // 生成Excel
             println!("📝 正在生成Excel报告...");
