@@ -175,37 +175,83 @@ struct AkshareCashflow {
 
 impl AkshareClient {
     pub fn new() -> Self {
-        Self {
-            python_path: "python3".to_string(),
-        }
+        // On Windows, use "python", on Unix use "python3"
+        let python_path = if cfg!(windows) {
+            "python".to_string()
+        } else {
+            "python3".to_string()
+        };
+        
+        Self { python_path }
     }
 
     /// 调用Python脚本获取数据
     fn call_python_script(&self, script: &str) -> Result<String> {
-        let output = Command::new(&self.python_path)
-            .arg("-c")
-            .arg(script)
-            .output()
-            .map_err(|e| anyhow!("执行Python失败: {}. 请确保已安装Python3和akshare库 (pip3 install akshare)", e))?;
-
-        if !output.status.success() {
-            let error = String::from_utf8_lossy(&output.stderr);
+        use std::fs;
+        use std::env;
+        
+        // On Windows, write script to temp file to avoid encoding issues
+        if cfg!(windows) {
+            let temp_dir = env::temp_dir();
+            let script_path = temp_dir.join("akshare_script.py");
             
-            // 检查是否是lxml解析器问题
-            if error.contains("lxml") || error.contains("FeatureNotFound") {
-                return Err(anyhow!(
-                    "AKShare依赖错误: 请安装完整依赖\n\
-                    解决方案:\n\
-                    1. pip3 install beautifulsoup4 lxml html5lib\n\
-                    2. 或使用: pip3 install --upgrade akshare beautifulsoup4 lxml\n\
-                    \n原始错误: {}", error
-                ));
+            // Write script with UTF-8 BOM to ensure proper encoding
+            let script_with_bom = format!("\u{FEFF}# -*- coding: utf-8 -*-\n{}", script);
+            fs::write(&script_path, script_with_bom)
+                .map_err(|e| anyhow!("写入临时脚本失败: {}", e))?;
+            
+            let output = Command::new(&self.python_path)
+                .arg(&script_path)
+                .output()
+                .map_err(|e| anyhow!("执行Python失败: {}. 请确保已安装Python和akshare库 (pip install akshare)", e))?;
+            
+            // Clean up temp file
+            let _ = fs::remove_file(&script_path);
+            
+            if !output.status.success() {
+                let error = String::from_utf8_lossy(&output.stderr);
+                
+                // 检查是否是lxml解析器问题
+                if error.contains("lxml") || error.contains("FeatureNotFound") {
+                    return Err(anyhow!(
+                        "AKShare依赖错误: 请安装完整依赖\n\
+                        解决方案:\n\
+                        1. pip install beautifulsoup4 lxml html5lib\n\
+                        2. 或使用: pip install --upgrade akshare beautifulsoup4 lxml\n\
+                        \n原始错误: {}", error
+                    ));
+                }
+                
+                return Err(anyhow!("Python脚本执行错误: {}", error));
             }
             
-            return Err(anyhow!("Python脚本执行错误: {}", error));
-        }
+            Ok(String::from_utf8_lossy(&output.stdout).to_string())
+        } else {
+            let output = Command::new(&self.python_path)
+                .arg("-c")
+                .arg(script)
+                .output()
+                .map_err(|e| anyhow!("执行Python失败: {}. 请确保已安装Python3和akshare库 (pip3 install akshare)", e))?;
 
-        Ok(String::from_utf8_lossy(&output.stdout).to_string())
+            if !output.status.success() {
+                let error = String::from_utf8_lossy(&output.stderr);
+                
+                // 检查是否是lxml解析器问题
+                if error.contains("lxml") || error.contains("FeatureNotFound") {
+                    return Err(anyhow!(
+                        "AKShare依赖错误: 请安装完整依赖\n\
+                        解决方案:\n\
+                        1. pip3 install beautifulsoup4 lxml html5lib\n\
+                        2. 或使用: pip3 install --upgrade akshare beautifulsoup4 lxml\n\
+                        \n原始错误: {}", error
+                    ));
+                }
+                
+                return Err(anyhow!("Python脚本执行错误: {}", error));
+            }
+
+            Ok(String::from_utf8_lossy(&output.stdout).to_string())
+        }
     }
 
     /// 获取资产负债表
