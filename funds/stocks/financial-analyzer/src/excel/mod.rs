@@ -125,18 +125,17 @@ impl ExcelWriter {
         worksheet.set_name("(经营性&金融性)资产&负债结构分析")?;
 
         let years = &result.asset_structure.years;
+        let num_years = years.len().min(3); // 最多显示3年
         
         // 创建格式
         let (header_fmt, subheader_fmt, number_fmt, percent_fmt, highlight_fmt, _, _, _) = Self::create_formats();
         
-        // Headers - 使用标题格式
-        worksheet.write_string_with_format(1, 2, years[0].to_string(), &header_fmt)?;
-        worksheet.write_string_with_format(1, 3, years[1].to_string(), &header_fmt)?;
-        worksheet.write_string_with_format(1, 4, years[2].to_string(), &header_fmt)?;
+        // Headers - 使用标题格式，根据实际年份数量写入
+        for (i, year) in years.iter().take(num_years).enumerate() {
+            worksheet.write_string_with_format(1, 2 + i as u16, year.to_string(), &header_fmt)?;
+            worksheet.write_string_with_format(1, 8 + i as u16, year.to_string(), &header_fmt)?;
+        }
         worksheet.write_string_with_format(1, 7, "项目", &header_fmt)?;
-        worksheet.write_string_with_format(1, 8, years[0].to_string(), &header_fmt)?;
-        worksheet.write_string_with_format(1, 9, years[1].to_string(), &header_fmt)?;
-        worksheet.write_string_with_format(1, 10, years[2].to_string(), &header_fmt)?;
 
         worksheet.write_string_with_format(2, 1, "项目", &subheader_fmt)?;
         worksheet.write_string_with_format(2, 7, "项目", &subheader_fmt)?;
@@ -348,12 +347,13 @@ impl ExcelWriter {
         worksheet.set_column_width(12 as u16, 20.0)?;
 
         let years = &result.asset_structure.years;
+        let num_years = years.len().min(3);
 
         // Headers
         worksheet.write_string(1, 1, "项目")?;
-        worksheet.write_string(1, 2, years[0].to_string())?;
-        worksheet.write_string(1, 3, years[1].to_string())?;
-        worksheet.write_string(1, 4, years[2].to_string())?;
+        for (i, year) in years.iter().take(num_years).enumerate() {
+            worksheet.write_string(1, 2 + i as u16, year.to_string())?;
+        }
 
         // Income statement items with data
         let income_items = vec![
@@ -436,10 +436,11 @@ impl ExcelWriter {
 
         // EBIT和杠杆分析
         let years = &result.asset_structure.years;
+        let num_years = years.len().min(3);
         worksheet.write_string_with_format(15, 9, "项目", &subheader_fmt)?;
-        worksheet.write_string_with_format(15, 10, years[0].to_string(), &subheader_fmt)?;
-        worksheet.write_string_with_format(15, 11, years[1].to_string(), &subheader_fmt)?;
-        worksheet.write_string_with_format(15, 12, years[2].to_string(), &subheader_fmt)?;
+        for (i, year) in years.iter().take(num_years).enumerate() {
+            worksheet.write_string_with_format(15, 10 + i as u16, year.to_string(), &subheader_fmt)?;
+        }
 
         worksheet.write_string_with_format(16, 9, "EBIT", &subheader_fmt)?;
         worksheet.write_formula_with_format(16, 10, "=C20+C9+C5", &number_fmt)?;
@@ -649,9 +650,10 @@ impl ExcelWriter {
             .set_border(FormatBorder::Thin);
         
         // Headers
-        worksheet.write_string_with_format(2, 3, years[0].to_string(), &header_fmt)?;
-        worksheet.write_string_with_format(2, 4, years[1].to_string(), &header_fmt)?;
-        worksheet.write_string_with_format(2, 5, years[2].to_string(), &header_fmt)?;
+        let num_years = years.len().min(3);
+        for (i, year) in years.iter().take(num_years).enumerate() {
+            worksheet.write_string_with_format(2, 3 + i as u16, year.to_string(), &header_fmt)?;
+        }
         
         worksheet.write_string_with_format(3, 0, "综合实力分析", &subheader_fmt)?;
         worksheet.write_string_with_format(3, 1, "项目", &subheader_fmt)?;
@@ -729,12 +731,13 @@ impl ExcelWriter {
         worksheet.set_name("资产负债表分析视角")?;
         
         let years = &result.asset_structure.years;
+        let num_years = years.len().min(3);
         let (header_fmt, subheader_fmt, number_fmt, _, _, _, _, _) = Self::create_formats();
         
         worksheet.write_string_with_format(0, 0, "科目", &header_fmt)?;
-        worksheet.write_string_with_format(0, 1, years[0].to_string(), &header_fmt)?;
-        worksheet.write_string_with_format(0, 2, years[1].to_string(), &header_fmt)?;
-        worksheet.write_string_with_format(0, 3, years[2].to_string(), &header_fmt)?;
+        for (i, year) in years.iter().take(num_years).enumerate() {
+            worksheet.write_string_with_format(0, 1 + i as u16, year.to_string(), &header_fmt)?;
+        }
         
         // Key balance sheet items
         let items = vec![

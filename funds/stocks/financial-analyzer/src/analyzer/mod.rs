@@ -41,6 +41,14 @@ impl FinancialAnalyzer {
         years: Vec<i32>,
         data_source: &dyn DataSource,
     ) -> Result<AnalysisResult> {
+        // 如果years为空，使用默认的最近3年
+        let years = if years.is_empty() {
+            let current_year = chrono::Local::now().year();
+            vec![current_year - 1, current_year - 2, current_year - 3]
+        } else {
+            years
+        };
+        
         // 获取数据
         let start_date = chrono::NaiveDate::from_ymd_opt(years[years.len() - 1], 12, 31).unwrap();
         let end_date = chrono::NaiveDate::from_ymd_opt(years[0], 12, 31).unwrap();

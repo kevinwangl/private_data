@@ -33,6 +33,66 @@ struct AkshareBalanceSheet {
     inventory: Option<f64>,
     #[serde(rename = "SHARE_CAPITAL")]
     share_capital: Option<f64>,
+    // 资产科目
+    #[serde(rename = "NOTES_RECEIVABLE")]
+    notes_receivable: Option<f64>,
+    #[serde(rename = "PREPAYMENTS")]
+    prepayments: Option<f64>,
+    #[serde(rename = "INTANGIBLE_ASSETS")]
+    intangible_assets: Option<f64>,
+    #[serde(rename = "TRADING_FINANCIAL_ASSETS")]
+    trading_financial_assets: Option<f64>,
+    #[serde(rename = "LONG_TERM_EQUITY_INVESTMENT")]
+    long_term_equity_investment: Option<f64>,
+    #[serde(rename = "HELD_TO_MATURITY_INVESTMENTS")]
+    held_to_maturity_investments: Option<f64>,
+    #[serde(rename = "INVESTMENT_PROPERTY")]
+    investment_property: Option<f64>,
+    #[serde(rename = "LONG_TERM_RECEIVABLES")]
+    long_term_receivables: Option<f64>,
+    #[serde(rename = "INTEREST_RECEIVABLE")]
+    interest_receivable: Option<f64>,
+    #[serde(rename = "DIVIDEND_RECEIVABLE")]
+    dividend_receivable: Option<f64>,
+    #[serde(rename = "DEFERRED_TAX_ASSETS")]
+    deferred_tax_assets: Option<f64>,
+    #[serde(rename = "NON_CURRENT_ASSETS_DUE_WITHIN_ONE_YEAR")]
+    non_current_assets_due_within_one_year: Option<f64>,
+    #[serde(rename = "OTHER_NON_CURRENT_ASSETS")]
+    other_non_current_assets: Option<f64>,
+    // 负债科目
+    #[serde(rename = "NOTES_PAYABLE")]
+    notes_payable: Option<f64>,
+    #[serde(rename = "ACCOUNTS_PAYABLE")]
+    accounts_payable: Option<f64>,
+    #[serde(rename = "ADVANCE_RECEIPTS")]
+    advance_receipts: Option<f64>,
+    #[serde(rename = "EMPLOYEE_PAYABLE")]
+    employee_payable: Option<f64>,
+    #[serde(rename = "TAX_PAYABLE")]
+    tax_payable: Option<f64>,
+    #[serde(rename = "CONTRACT_LIABILITIES")]
+    contract_liabilities: Option<f64>,
+    #[serde(rename = "DEFERRED_TAX_LIABILITIES")]
+    deferred_tax_liabilities: Option<f64>,
+    #[serde(rename = "DEFERRED_REVENUE")]
+    deferred_revenue: Option<f64>,
+    #[serde(rename = "INTEREST_PAYABLE")]
+    interest_payable: Option<f64>,
+    #[serde(rename = "DIVIDEND_PAYABLE")]
+    dividend_payable: Option<f64>,
+    #[serde(rename = "BONDS_PAYABLE")]
+    bonds_payable: Option<f64>,
+    #[serde(rename = "TRADING_FINANCIAL_LIABILITIES")]
+    trading_financial_liabilities: Option<f64>,
+    #[serde(rename = "LONG_TERM_PAYABLE")]
+    long_term_payable: Option<f64>,
+    #[serde(rename = "LONG_TERM_LOAN")]
+    long_term_loan: Option<f64>,
+    #[serde(rename = "SHORT_TERM_LOAN")]
+    short_term_loan: Option<f64>,
+    #[serde(rename = "NON_CURRENT_LIABILITIES_DUE_WITHIN_ONE_YEAR")]
+    non_current_liabilities_due_within_one_year: Option<f64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -138,6 +198,35 @@ for _, row in df.iterrows():
         'ACCOUNTS_RECE': safe_float(row.get('应收账款')),
         'INVENTORY': safe_float(row.get('存货')),
         'SHARE_CAPITAL': safe_float(row.get('实收资本(或股本)')),
+        'NOTES_RECEIVABLE': safe_float(row.get('应收票据')),
+        'PREPAYMENTS': safe_float(row.get('预付款项')),
+        'INTANGIBLE_ASSETS': safe_float(row.get('无形资产')),
+        'TRADING_FINANCIAL_ASSETS': safe_float(row.get('交易性金融资产')),
+        'LONG_TERM_EQUITY_INVESTMENT': safe_float(row.get('长期股权投资')),
+        'HELD_TO_MATURITY_INVESTMENTS': safe_float(row.get('持有至到期投资')),
+        'INVESTMENT_PROPERTY': safe_float(row.get('投资性房地产')),
+        'LONG_TERM_RECEIVABLES': safe_float(row.get('长期应收款')),
+        'INTEREST_RECEIVABLE': safe_float(row.get('应收利息')),
+        'DIVIDEND_RECEIVABLE': safe_float(row.get('应收股利')),
+        'DEFERRED_TAX_ASSETS': safe_float(row.get('递延所得税资产')),
+        'NON_CURRENT_ASSETS_DUE_WITHIN_ONE_YEAR': safe_float(row.get('一年内到期的非流动资产')),
+        'OTHER_NON_CURRENT_ASSETS': safe_float(row.get('其他非流动资产')),
+        'NOTES_PAYABLE': safe_float(row.get('应付票据')),
+        'ACCOUNTS_PAYABLE': safe_float(row.get('应付账款')),
+        'ADVANCE_RECEIPTS': safe_float(row.get('预收款项')),
+        'EMPLOYEE_PAYABLE': safe_float(row.get('应付职工薪酬')),
+        'TAX_PAYABLE': safe_float(row.get('应交税费')),
+        'CONTRACT_LIABILITIES': safe_float(row.get('合同负债')),
+        'DEFERRED_TAX_LIABILITIES': safe_float(row.get('递延所得税负债')),
+        'DEFERRED_REVENUE': safe_float(row.get('长期递延收益')),
+        'INTEREST_PAYABLE': safe_float(row.get('应付利息')),
+        'DIVIDEND_PAYABLE': safe_float(row.get('应付股利')),
+        'BONDS_PAYABLE': safe_float(row.get('应付债券')),
+        'TRADING_FINANCIAL_LIABILITIES': safe_float(row.get('交易性金融负债')),
+        'LONG_TERM_PAYABLE': safe_float(row.get('长期应付款')),
+        'LONG_TERM_LOAN': safe_float(row.get('长期借款')),
+        'SHORT_TERM_LOAN': safe_float(row.get('短期借款')),
+        'NON_CURRENT_LIABILITIES_DUE_WITHIN_ONE_YEAR': safe_float(row.get('一年内到期的非流动负债')),
     }})
 print(json.dumps(result))
 "#,
@@ -272,6 +361,39 @@ impl DataSource for AkshareClient {
             items_map.insert("存货".to_string(), Decimal::from_f64_retain(item.inventory.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
             items_map.insert("股本".to_string(), Decimal::from_f64_retain(item.share_capital.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
             items_map.insert("实收资本(或股本)".to_string(), Decimal::from_f64_retain(item.share_capital.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            
+            // 资产科目
+            items_map.insert("应收票据".to_string(), Decimal::from_f64_retain(item.notes_receivable.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("预付款项".to_string(), Decimal::from_f64_retain(item.prepayments.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("无形资产".to_string(), Decimal::from_f64_retain(item.intangible_assets.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("交易性金融资产".to_string(), Decimal::from_f64_retain(item.trading_financial_assets.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("长期股权投资".to_string(), Decimal::from_f64_retain(item.long_term_equity_investment.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("持有至到期投资".to_string(), Decimal::from_f64_retain(item.held_to_maturity_investments.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("投资性房地产".to_string(), Decimal::from_f64_retain(item.investment_property.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("长期应收款".to_string(), Decimal::from_f64_retain(item.long_term_receivables.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("应收利息".to_string(), Decimal::from_f64_retain(item.interest_receivable.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("应收股利".to_string(), Decimal::from_f64_retain(item.dividend_receivable.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("递延所得税资产".to_string(), Decimal::from_f64_retain(item.deferred_tax_assets.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("一年内到期的非流动资产".to_string(), Decimal::from_f64_retain(item.non_current_assets_due_within_one_year.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("其他非流动资产".to_string(), Decimal::from_f64_retain(item.other_non_current_assets.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            
+            // 负债科目
+            items_map.insert("应付票据".to_string(), Decimal::from_f64_retain(item.notes_payable.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("应付账款".to_string(), Decimal::from_f64_retain(item.accounts_payable.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("预收款项".to_string(), Decimal::from_f64_retain(item.advance_receipts.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("应付职工薪酬".to_string(), Decimal::from_f64_retain(item.employee_payable.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("应交税费".to_string(), Decimal::from_f64_retain(item.tax_payable.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("合同负债".to_string(), Decimal::from_f64_retain(item.contract_liabilities.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("递延所得税负债".to_string(), Decimal::from_f64_retain(item.deferred_tax_liabilities.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("递延收益".to_string(), Decimal::from_f64_retain(item.deferred_revenue.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("应付利息".to_string(), Decimal::from_f64_retain(item.interest_payable.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("应付股利".to_string(), Decimal::from_f64_retain(item.dividend_payable.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("应付债券".to_string(), Decimal::from_f64_retain(item.bonds_payable.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("交易性金融负债".to_string(), Decimal::from_f64_retain(item.trading_financial_liabilities.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("长期应付款".to_string(), Decimal::from_f64_retain(item.long_term_payable.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("长期借款".to_string(), Decimal::from_f64_retain(item.long_term_loan.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("短期借款".to_string(), Decimal::from_f64_retain(item.short_term_loan.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
+            items_map.insert("一年内到期的非流动负债".to_string(), Decimal::from_f64_retain(item.non_current_liabilities_due_within_one_year.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
 
             let statement = FinancialStatement {
                 stock_code: stock_code.to_string(),
