@@ -547,8 +547,8 @@ impl ExcelWriter {
 
         worksheet.write_string(18, 5, "DCF估值")?;
         worksheet.write_string(18, 6, "FCF增长率(G)")?;
-        // 修复3：添加负数和零的边界条件处理
-        worksheet.write_formula_with_format(18, 7, "=IF(OR(K15=0,K15<0,I15<0),0.1,POWER(I15/K15,1/2)-1)", number_fmt)?;
+        // FCF增长率：计算2年复合增长率，但限制在-10%到15%之间
+        worksheet.write_formula_with_format(18, 7, "=IF(OR(K15=0,K15<0,I15<0),0.1,MIN(0.15,MAX(-0.1,POWER(I15/K15,1/2)-1)))", number_fmt)?;
 
         worksheet.write_string(19, 5, "DCF估值")?;
         worksheet.write_string(19, 6, "总股本")?;
