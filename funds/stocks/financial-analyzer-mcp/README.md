@@ -13,35 +13,43 @@ npm run build
 
 编辑 Kiro 配置文件 `~/.kiro/mcp.json`:
 
+**macOS/Linux:**
 ```json
 {
   "mcpServers": {
     "financial-analyzer": {
       "command": "node",
       "args": [
-        "/Users/sm4299/Downloads/bryan/private_data/funds/stocks/financial-analyzer-mcp/build/index.js"
+        "你的项目路径/financial-analyzer-mcp/build/index.js"
       ]
     }
   }
 }
 ```
+
+**Windows:**
+```json
+{
+  "mcpServers": {
+    "financial-analyzer": {
+      "command": "node",
+      "args": [
+        "你的项目路径\\financial-analyzer-mcp\\build\\index.js"
+      ]
+    }
+  }
+}
+```
+
+> **注意**: 将 `你的项目路径` 替换为实际路径。macOS 可使用 `~/` 开头,Windows 可使用 `%USERPROFILE%\` 开头。
 
 ### 3. 配置到 Claude Desktop
 
-编辑 `~/Library/Application Support/Claude/claude_desktop_config.json`:
+编辑配置文件:
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
-```json
-{
-  "mcpServers": {
-    "financial-analyzer": {
-      "command": "node",
-      "args": [
-        "/Users/sm4299/Downloads/bryan/private_data/funds/stocks/financial-analyzer-mcp/build/index.js"
-      ]
-    }
-  }
-}
-```
+使用与上述相同的配置格式。
 
 ## 使用示例
 
@@ -50,6 +58,13 @@ npm run build
 ### 基础分析
 ```
 分析茅台的财务数据，股票代码 600519.SH，分析 2019-2021 年的数据
+```
+
+报告将自动保存到当前目录下的 `analyzer-report/` 文件夹中。
+
+### 自定义输出目录
+```
+分析 600519.SH，年份 2019,2018,2017，输出到 my-reports 目录
 ```
 
 ### 带敏感性分析
@@ -64,6 +79,7 @@ npm run build
 - stock_code: 600519.SH
 - years: 2019,2018,2017
 - source: akshare
+- output_dir: analyzer-report
 - enable_validation: true
 - discount_rate: 0.10
 - perpetual_growth_rate: 0.05
@@ -71,7 +87,7 @@ npm run build
 - net_profit_growth_rate: 0.12
 ```
 
-AI 会自动调用 `analyze_stock` 工具。
+AI 会自动调用 `analyze_stock` 工具，并在指定目录创建报告。
 
 ## 前置条件
 
@@ -93,7 +109,8 @@ export TUSHARE_TOKEN="your_token"
 - `stock_code` (必需): 股票代码，如 600519.SH
 - `years` (必需): 分析年份，如 "2019,2018,2017"
 - `source` (可选): 数据源 mock/akshare/tushare，默认 akshare
-- `output` (可选): 输出文件路径
+- `output_dir` (可选): 输出目录路径，默认为 analyzer-report
+- `output` (可选): 输出文件名(不含路径)，默认为 {stock_code}_财务分析.xlsx
 - `enable_validation` (可选): 是否启用数据验证
 - `discount_rate` (可选): 敏感性分析 - 折现率
 - `perpetual_growth_rate` (可选): 敏感性分析 - 永续增长率
@@ -103,7 +120,7 @@ export TUSHARE_TOKEN="your_token"
 - `high_risk_free_rate` (可选): 敏感性分析 - 无风险收益率(高估)
 
 **输出:**
-生成双格式报告:
+报告将保存到指定的输出目录(默认 `analyzer-report/`),包含双格式:
 - **Excel 报告** ({stock_code}_财务分析.xlsx):
   - 资产结构分析
   - 利润分析

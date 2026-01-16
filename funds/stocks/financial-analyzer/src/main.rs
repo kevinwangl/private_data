@@ -98,41 +98,42 @@ async fn main() -> Result<()> {
             println!("⏳ 正在获取数据...");
             let mut result = analyzer.analyze(&stock, years, data_source.as_ref()).await?;
 
-            // 如果提供了敏感性分析参数，计算敏感性分析
-            if discount_rate.is_some() || perpetual_growth_rate.is_some() || 
-               fcf_growth_rate.is_some() || net_profit_growth_rate.is_some() ||
-               low_risk_free_rate.is_some() || high_risk_free_rate.is_some() {
-                println!("🔬 计算敏感性分析...");
-                
-                let mut sensitivity_params = analyzer::SensitivityParams::default();
-                
-                if let Some(r) = discount_rate {
-                    sensitivity_params.discount_rate = r;
-                }
-                if let Some(g) = perpetual_growth_rate {
-                    sensitivity_params.perpetual_growth_rate = g;
-                }
-                if let Some(fcf_g) = fcf_growth_rate {
-                    sensitivity_params.fcf_growth_rate = fcf_g;
-                }
-                if let Some(np_g) = net_profit_growth_rate {
-                    sensitivity_params.net_profit_growth_rate = np_g;
-                }
-                if let Some(low_rf) = low_risk_free_rate {
-                    sensitivity_params.low_risk_free_rate = low_rf;
-                }
-                if let Some(high_rf) = high_risk_free_rate {
-                    sensitivity_params.high_risk_free_rate = high_rf;
-                }
-                
-                analyzer.calculate_sensitivity(&mut result, sensitivity_params)?;
-                println!("✓ 敏感性分析完成");
+            // 默认启用敏感性分析
+            println!("🔬 计算敏感性分析...");
+            
+            let mut sensitivity_params = analyzer::SensitivityParams::default();
+            
+            if let Some(r) = discount_rate {
+                sensitivity_params.discount_rate = r;
             }
+            if let Some(g) = perpetual_growth_rate {
+                sensitivity_params.perpetual_growth_rate = g;
+            }
+            if let Some(fcf_g) = fcf_growth_rate {
+                sensitivity_params.fcf_growth_rate = fcf_g;
+            }
+            if let Some(np_g) = net_profit_growth_rate {
+                sensitivity_params.net_profit_growth_rate = np_g;
+            }
+            if let Some(low_rf) = low_risk_free_rate {
+                sensitivity_params.low_risk_free_rate = low_rf;
+            }
+            if let Some(high_rf) = high_risk_free_rate {
+                sensitivity_params.high_risk_free_rate = high_rf;
+            }
+            
+            analyzer.calculate_sensitivity(&mut result, sensitivity_params)?;
+            println!("✓ 敏感性分析完成");
 
             // 确定输出文件名
             let output_path = output.unwrap_or_else(|| {
-                PathBuf::from(format!("{}_财务分析.xlsx", stock.replace(".", "_")))
+                PathBuf::from(format!("../analyzer-report/{}_财务分析.xlsx", stock.replace(".", "_")))
             });
+
+            // 创建输出目录（如果不存在）
+            if let Some(parent) = output_path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
 
             // 生成文本报告（控制台输出 + 保存文件）
             println!("\n📊 生成文本报告...\n");
