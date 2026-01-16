@@ -22,8 +22,8 @@ pub struct DCFParams {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct TangchaoParams {
     pub net_profit_growth_rate: f64,
-    pub low_risk_free_rate: f64,
-    pub high_risk_free_rate: f64,
+    pub low_risk_free_rate: f64,      // 低估区域：高收益率 → 低PE
+    pub high_risk_free_rate: f64,     // 高估区域：低收益率 → 高PE
     pub safety_margin: f64,
 }
 
@@ -37,11 +37,11 @@ impl Default for ValuationParams {
             },
             tangchao: TangchaoParams {
                 net_profit_growth_rate: 0.10,
-                low_risk_free_rate: 0.04,
-                high_risk_free_rate: 0.02,
+                low_risk_free_rate: 0.04,   // 4% → PE=25 (低估买入)
+                high_risk_free_rate: 0.02,  // 2% → PE=50 (高估卖出)
                 safety_margin: 0.7,
             },
-            total_shares: Decimal::new(100_000_000, 0), // 1亿股
+            total_shares: Decimal::new(100_000_000, 0),
         }
     }
 }
@@ -68,7 +68,7 @@ pub struct TangchaoValuation {
 
 /// 估值器
 pub struct Valuator {
-    params: ValuationParams,
+    pub params: ValuationParams,  // 改为pub以便外部访问
 }
 
 impl Valuator {
@@ -101,13 +101,29 @@ impl Valuator {
             });
         }
 
-        // 计算平均自由现金流
-        let total_fcf: Decimal = cashflows.iter().map(|cf| cf.free_cashflow).sum();
-        let avg_fcf = total_fcf / Decimal::from(cashflows.len());
-
         let discount_rate = Decimal::from_f64_retain(self.params.dcf.discount_rate).unwrap();
         let fcf_growth = Decimal::from_f64_retain(self.params.dcf.fcf_growth_rate).unwrap();
         let perpetual_growth = Decimal::from_f64_retain(self.params.dcf.perpetual_growth_rate).unwrap();
+
+        // 验证：折现率必须大于永续增长率
+        if discount_rate <= perpetual_growth {
+            return Err(anyhow::anyhow!(
+                "DCF估值错误：折现率({:.2}%)必须大于永续增长率({:.2}%)",
+                self.params.dcf.discount_rate * 100.0,
+                self.params.dcf.perpetual_growth_rate * 100.0
+            ));
+        }
+
+        // 使用最新年份的FCF（假设数据按时间倒序排列）
+        let base_fcf = cashflows[0].free_cashflow;
+
+        // 警告：负FCF
+        if base_fcf <= Decimal::ZERO {
+            tracing::warn!(
+                "自由现金流为负或零({})，DCF估值可能不准确",
+                base_fcf
+            );
+        }
 
         // 计算前3年现值
         let mut pv_sum = Decimal::ZERO;
@@ -120,7 +136,7 @@ impl Valuator {
                 discount_factor *= Decimal::ONE + discount_rate;
             }
             
-            let fcf = avg_fcf * growth_factor;
+            let fcf = base_fcf * growth_factor;
             let pv = fcf / discount_factor;
             pv_sum += pv;
         }
@@ -130,7 +146,7 @@ impl Valuator {
         for _ in 0..3 {
             terminal_growth_factor *= Decimal::ONE + fcf_growth;
         }
-        let terminal_fcf = avg_fcf * terminal_growth_factor;
+        let terminal_fcf = base_fcf * terminal_growth_factor;
         
         let terminal_value = terminal_fcf * (Decimal::ONE + perpetual_growth) / (discount_rate - perpetual_growth);
         
@@ -163,7 +179,9 @@ impl Valuator {
         let growth_rate = Decimal::from_f64_retain(self.params.tangchao.net_profit_growth_rate).unwrap();
 
         // 计算PE倍数
+        // 低估区域：高收益率(0.04) → 低PE(25)
         let low_pe = Decimal::ONE / Decimal::from_f64_retain(self.params.tangchao.low_risk_free_rate).unwrap();
+        // 高估区域：低收益率(0.02) → 高PE(50)
         let high_pe = Decimal::ONE / Decimal::from_f64_retain(self.params.tangchao.high_risk_free_rate).unwrap();
 
         // 3年后净利润
@@ -172,7 +190,7 @@ impl Valuator {
             future_profit *= Decimal::ONE + growth_rate;
         }
 
-        // 估值
+        // 估值：低估区域用低PE，高估区域用高PE
         let low_estimate = (future_profit * low_pe) / self.params.total_shares;
         let high_estimate = (future_profit * high_pe) / self.params.total_shares;
         let safety_margin_price = low_estimate * Decimal::from_f64_retain(self.params.tangchao.safety_margin).unwrap();

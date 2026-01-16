@@ -112,6 +112,7 @@ pub struct AnalysisResult {
     pub profit_analysis: ProfitAnalysis,
     pub valuation: Option<crate::analyzer::ValuationResult>,
     pub statements: Vec<FinancialStatement>,  // 添加原始报表数据
+    pub sensitivity: Option<crate::analyzer::SensitivityResult>,  // 敏感性分析结果
 }
 
 /// 资产结构分析

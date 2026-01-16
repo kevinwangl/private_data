@@ -37,6 +37,12 @@ async fn main() -> Result<()> {
             source,
             output,
             enable_validation,
+            discount_rate,
+            perpetual_growth_rate,
+            fcf_growth_rate,
+            net_profit_growth_rate,
+            low_risk_free_rate,
+            high_risk_free_rate,
         } => {
             println!("🔍 分析股票: {}", stock);
             println!("📅 年份: {:?}", years);
@@ -90,7 +96,38 @@ async fn main() -> Result<()> {
 
             // 执行分析
             println!("⏳ 正在获取数据...");
-            let result = analyzer.analyze(&stock, years, data_source.as_ref()).await?;
+            let mut result = analyzer.analyze(&stock, years, data_source.as_ref()).await?;
+
+            // 如果提供了敏感性分析参数，计算敏感性分析
+            if discount_rate.is_some() || perpetual_growth_rate.is_some() || 
+               fcf_growth_rate.is_some() || net_profit_growth_rate.is_some() ||
+               low_risk_free_rate.is_some() || high_risk_free_rate.is_some() {
+                println!("🔬 计算敏感性分析...");
+                
+                let mut sensitivity_params = analyzer::SensitivityParams::default();
+                
+                if let Some(r) = discount_rate {
+                    sensitivity_params.discount_rate = r;
+                }
+                if let Some(g) = perpetual_growth_rate {
+                    sensitivity_params.perpetual_growth_rate = g;
+                }
+                if let Some(fcf_g) = fcf_growth_rate {
+                    sensitivity_params.fcf_growth_rate = fcf_g;
+                }
+                if let Some(np_g) = net_profit_growth_rate {
+                    sensitivity_params.net_profit_growth_rate = np_g;
+                }
+                if let Some(low_rf) = low_risk_free_rate {
+                    sensitivity_params.low_risk_free_rate = low_rf;
+                }
+                if let Some(high_rf) = high_risk_free_rate {
+                    sensitivity_params.high_risk_free_rate = high_rf;
+                }
+                
+                analyzer.calculate_sensitivity(&mut result, sensitivity_params)?;
+                println!("✓ 敏感性分析完成");
+            }
 
             // 确定输出文件名
             let output_path = output.unwrap_or_else(|| {

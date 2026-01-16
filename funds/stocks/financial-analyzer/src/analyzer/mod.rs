@@ -3,12 +3,15 @@ use crate::domain::*;
 use crate::validation::{DataValidator, ValidationResult};
 use anyhow::Result;
 use chrono::Datelike;
+use rust_decimal::Decimal;
 
 mod calculator;
 mod valuation;
+mod sensitivity;
 
 use calculator::RatioCalculator;
 pub use valuation::{Valuator, ValuationResult, ValuationParams};
+pub use sensitivity::{SensitivityParams, SensitivityResult};
 
 pub struct FinancialAnalyzer {
     calculator: RatioCalculator,
@@ -97,8 +100,21 @@ impl FinancialAnalyzer {
         let asset_structure = self.calculator.calculate_asset_structure(&balance_sheets)?;
         let profit_analysis = self.calculator.calculate_profit_ratios(&income_statements)?;
 
+        // 自动获取总股本
+        let total_shares = balance_sheets.first()
+            .and_then(|bs| bs.statement.items.get("股本"))
+            .copied()
+            .unwrap_or_else(|| {
+                tracing::warn!("未找到股本数据，使用默认值1亿股");
+                Decimal::new(100_000_000, 0)
+            });
+
+        // 更新估值器的总股本
+        let mut valuator = Valuator::new(self.valuator.params.clone());
+        valuator.params.total_shares = total_shares;
+
         // 计算估值
-        let valuation = self.valuator.calculate(&income_statements, &cashflow_statements)?;
+        let valuation = valuator.calculate(&income_statements, &cashflow_statements)?;
 
         // 合并所有报表
         let mut statements = Vec::new();
@@ -113,7 +129,85 @@ impl FinancialAnalyzer {
             profit_analysis,
             valuation: Some(valuation),
             statements,
+            sensitivity: None,  // 默认不计算敏感性分析
         })
+    }
+
+    /// 计算敏感性分析
+    pub fn calculate_sensitivity(
+        &self,
+        result: &mut AnalysisResult,
+        params: SensitivityParams,
+    ) -> Result<()> {
+        // 从原始报表中提取数据
+        let income_statements: Vec<_> = result.statements.iter()
+            .filter(|s| s.report_type == crate::domain::ReportType::IncomeStatement)
+            .cloned()
+            .collect();
+        
+        let cashflow_statements: Vec<_> = result.statements.iter()
+            .filter(|s| s.report_type == crate::domain::ReportType::CashflowStatement)
+            .cloned()
+            .collect();
+
+        // 获取总股本（从现有估值参数中获取）
+        let total_shares = self.valuator.params.total_shares;
+
+        // 使用新参数创建临时估值器
+        let temp_valuator = Valuator::new(params.to_valuation_params(total_shares));
+        
+        // 从FinancialStatement构造IncomeStatement和CashflowStatement
+        let income_stmts: Vec<IncomeStatement> = income_statements.iter()
+            .map(|s| {
+                let revenue = s.items.get("营业收入").copied().unwrap_or(Decimal::ZERO);
+                let operating_cost = s.items.get("营业成本").copied().unwrap_or(Decimal::ZERO);
+                let gross_profit = revenue - operating_cost;
+                let core_profit = s.items.get("营业利润").copied().unwrap_or(Decimal::ZERO);
+                let net_profit = s.items.get("净利润").copied().unwrap_or(Decimal::ZERO);
+                
+                IncomeStatement {
+                    statement: s.clone(),
+                    revenue,
+                    operating_cost,
+                    gross_profit,
+                    core_profit,
+                    net_profit,
+                }
+            })
+            .collect();
+        
+        let cashflow_stmts: Vec<CashflowStatement> = cashflow_statements.iter()
+            .map(|s| {
+                let operating_cashflow = s.items.get("经营活动产生的现金流量净额").copied().unwrap_or(Decimal::ZERO);
+                let investing_cashflow = s.items.get("投资活动产生的现金流量净额").copied().unwrap_or(Decimal::ZERO);
+                let financing_cashflow = s.items.get("筹资活动产生的现金流量净额").copied().unwrap_or(Decimal::ZERO);
+                let capex = s.items.get("购建固定资产、无形资产和其他长期资产支付的现金").copied().unwrap_or(Decimal::ZERO);
+                let free_cashflow = operating_cashflow - capex;
+                
+                CashflowStatement {
+                    statement: s.clone(),
+                    operating_cashflow,
+                    investing_cashflow,
+                    financing_cashflow,
+                    free_cashflow,
+                }
+            })
+            .collect();
+
+        // 计算估值
+        let valuation = temp_valuator.calculate(&income_stmts, &cashflow_stmts)?;
+
+        // 保存敏感性分析结果
+        result.sensitivity = Some(SensitivityResult {
+            params,
+            dcf_enterprise_value: valuation.dcf.enterprise_value,
+            dcf_price_per_share: valuation.dcf.price_per_share,
+            tangchao_low_estimate: valuation.tangchao.low_estimate,
+            tangchao_high_estimate: valuation.tangchao.high_estimate,
+            tangchao_safety_margin_price: valuation.tangchao.safety_margin_price,
+        });
+
+        Ok(())
     }
 }
 

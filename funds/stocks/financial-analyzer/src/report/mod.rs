@@ -30,6 +30,11 @@ impl TextReporter {
         // Sheet4: 综合实力分析
         Self::append_sheet4(&mut report, result, years);
         
+        // Sheet5: 敏感性分析（如果有）
+        if result.sensitivity.is_some() {
+            Self::append_sensitivity(&mut report, result);
+        }
+        
         // 输出到控制台
         println!("{}", report);
         
@@ -373,5 +378,48 @@ impl TextReporter {
         if n.abs() >= 1_000_000_000.0 { format!("{:.2}亿", n / 100_000_000.0) }
         else if n.abs() >= 10_000.0 { format!("{:.2}万", n / 10_000.0) }
         else { format!("{:.2}", n) }
+    }
+    
+    fn append_sensitivity(report: &mut String, result: &AnalysisResult) {
+        report.push_str("\n【敏感性分析】\n");
+        report.push_str(&format!("{}\n", "=".repeat(100)));
+        
+        let sensitivity = result.sensitivity.as_ref().unwrap();
+        
+        report.push_str("\n--- 敏感性参数 ---\n");
+        report.push_str(&format!("{:<30} {:>18}\n", "参数名称", "参数值"));
+        report.push_str(&format!("{}\n", "-".repeat(50)));
+        report.push_str(&format!("{:<30} {:>17.2}%\n", "折现率(r)", sensitivity.params.discount_rate * 100.0));
+        report.push_str(&format!("{:<30} {:>17.2}%\n", "永续年金增长率(g)", sensitivity.params.perpetual_growth_rate * 100.0));
+        report.push_str(&format!("{:<30} {:>17.2}%\n", "FCF增长率(G)", sensitivity.params.fcf_growth_rate * 100.0));
+        report.push_str(&format!("{:<30} {:>17.2}%\n", "净利润增长率", sensitivity.params.net_profit_growth_rate * 100.0));
+        report.push_str(&format!("{:<30} {:>17.2}%\n", "无风险收益率(低估区域)", sensitivity.params.low_risk_free_rate * 100.0));
+        report.push_str(&format!("{:<30} {:>17.2}%\n", "无风险收益率(高估区域)", sensitivity.params.high_risk_free_rate * 100.0));
+        
+        report.push_str("\n--- 估值结果 ---\n");
+        report.push_str(&format!("{:<30} {:>18} {:>10}\n", "估值方法", "估值结果", "单位"));
+        report.push_str(&format!("{}\n", "-".repeat(60)));
+        
+        let dcf_value = sensitivity.dcf_enterprise_value.to_string().parse::<f64>().unwrap_or(0.0);
+        let dcf_price = sensitivity.dcf_price_per_share.to_string().parse::<f64>().unwrap_or(0.0);
+        let low_price = sensitivity.tangchao_low_estimate.to_string().parse::<f64>().unwrap_or(0.0);
+        let high_price = sensitivity.tangchao_high_estimate.to_string().parse::<f64>().unwrap_or(0.0);
+        let safety_price = sensitivity.tangchao_safety_margin_price.to_string().parse::<f64>().unwrap_or(0.0);
+        
+        report.push_str(&format!("{:<30} {:>18} {:>10}\n", "DCF企业价值", Self::format_number(dcf_value), "元"));
+        report.push_str(&format!("{:<30} {:>18.2} {:>10}\n", "DCF每股价值", dcf_price, "元/股"));
+        report.push_str(&format!("{:<30} {:>18.2} {:>10}\n", "唐朝低估价", low_price, "元/股"));
+        report.push_str(&format!("{:<30} {:>18.2} {:>10}\n", "唐朝高估价", high_price, "元/股"));
+        report.push_str(&format!("{:<30} {:>18.2} {:>10}\n", "唐朝安全边际价", safety_price, "元/股"));
+        
+        report.push_str("\n--- 使用说明 ---\n");
+        report.push_str("1. 可以通过修改参数重新运行分析，观察估值结果变化\n");
+        report.push_str("2. 参数说明：\n");
+        report.push_str("   - 折现率：反映投资风险，通常8%-12%\n");
+        report.push_str("   - 永续增长率：长期稳定增长率，通常2%-5%\n");
+        report.push_str("   - FCF增长率：自由现金流增长率\n");
+        report.push_str("   - 净利润增长率：用于唐朝估值法\n");
+        report.push_str("   - 无风险收益率：用于计算PE倍数\n");
+        report.push_str(&format!("{}\n\n", "=".repeat(100)));
     }
 }

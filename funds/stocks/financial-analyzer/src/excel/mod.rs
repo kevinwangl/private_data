@@ -5,6 +5,9 @@ use rust_xlsxwriter::*;
 use rust_decimal::prelude::ToPrimitive;
 use std::path::Path;
 
+mod helpers;
+pub use helpers::{DataHelper, ExcelFormatter};
+
 pub struct ExcelWriter;
 
 impl ExcelWriter {
@@ -20,6 +23,11 @@ impl ExcelWriter {
         self.write_sheet3_profit_cashflow(&mut workbook, result)?;
         self.write_sheet4_comprehensive(&mut workbook, result)?;
         self.write_sheet5_balance_perspective(&mut workbook, result)?;
+        
+        // 如果有敏感性分析结果，添加敏感性分析工作表
+        if result.sensitivity.is_some() {
+            self.write_sheet6_sensitivity(&mut workbook, result)?;
+        }
 
         workbook.save(output_path)?;
         Ok(())
@@ -823,6 +831,185 @@ impl ExcelWriter {
         // 设置列宽和行高
         Self::auto_fit_columns(worksheet)?;
         Self::set_row_heights(worksheet, 0, 15)?;
+        
+        Ok(())
+    }
+
+    // Sheet 6: 敏感性分析
+    fn write_sheet6_sensitivity(&self, workbook: &mut Workbook, result: &AnalysisResult) -> Result<()> {
+        let mut worksheet = workbook.add_worksheet();
+        worksheet.set_name("敏感性分析")?;
+        
+        let data = DataHelper::new(&result.statements);
+        let sensitivity = result.sensitivity.as_ref().unwrap();
+        
+        let (header_fmt, subheader_fmt, number_fmt, percent_fmt, _, _, _, _) = Self::create_formats();
+        
+        // 获取基础数据
+        let latest_fcf = data.get_cashflow_opt(0, "经营活动产生的现金流量净额").unwrap_or(0.0) 
+            - data.get_cashflow_opt(0, "购建固定资产、无形资产和其他长期资产支付的现金").unwrap_or(0.0);
+        let latest_net_profit = data.get_income_opt(0, "净利润").unwrap_or(0.0);
+        let total_shares = data.get_balance_opt(0, "股本").unwrap_or(100_000_000.0);
+        
+        // 标题
+        worksheet.write_string_with_format(0, 0, "敏感性分析 - 可编辑参数", &header_fmt)?;
+        worksheet.merge_range(0, 0, 0, 2, "敏感性分析 - 可编辑参数", &header_fmt)?;
+        
+        // 参数部分
+        let mut row = 2u32;
+        worksheet.write_string_with_format(row, 0, "参数名称", &subheader_fmt)?;
+        worksheet.write_string_with_format(row, 1, "参数值", &subheader_fmt)?;
+        worksheet.write_string_with_format(row, 2, "说明", &subheader_fmt)?;
+        
+        row += 1;
+        let r_row = row;
+        worksheet.write_string(row, 0, "折现率(r)")?;
+        worksheet.write_number_with_format(row, 1, sensitivity.params.discount_rate, &percent_fmt)?;
+        worksheet.write_string(row, 2, "DCF估值使用")?;
+        
+        row += 1;
+        let g_row = row;
+        worksheet.write_string(row, 0, "永续增长率(g)")?;
+        worksheet.write_number_with_format(row, 1, sensitivity.params.perpetual_growth_rate, &percent_fmt)?;
+        worksheet.write_string(row, 2, "DCF估值使用")?;
+        
+        row += 1;
+        let fcf_g_row = row;
+        worksheet.write_string(row, 0, "FCF增长率(G)")?;
+        worksheet.write_number_with_format(row, 1, sensitivity.params.fcf_growth_rate, &percent_fmt)?;
+        worksheet.write_string(row, 2, "DCF估值使用")?;
+        
+        row += 1;
+        let np_g_row = row;
+        worksheet.write_string(row, 0, "净利润增长率")?;
+        worksheet.write_number_with_format(row, 1, sensitivity.params.net_profit_growth_rate, &percent_fmt)?;
+        worksheet.write_string(row, 2, "唐朝估值使用")?;
+        
+        row += 1;
+        let low_rf_row = row;
+        worksheet.write_string(row, 0, "无风险收益率(低估)")?;
+        worksheet.write_number_with_format(row, 1, sensitivity.params.low_risk_free_rate, &percent_fmt)?;
+        worksheet.write_string(row, 2, "唐朝估值使用")?;
+        
+        row += 1;
+        let high_rf_row = row;
+        worksheet.write_string(row, 0, "无风险收益率(高估)")?;
+        worksheet.write_number_with_format(row, 1, sensitivity.params.high_risk_free_rate, &percent_fmt)?;
+        worksheet.write_string(row, 2, "唐朝估值使用")?;
+        
+        // 基础数据部分
+        row += 2;
+        worksheet.write_string_with_format(row, 0, "基础数据（最近一年）", &header_fmt)?;
+        worksheet.merge_range(row, 0, row, 2, "基础数据（最近一年）", &header_fmt)?;
+        
+        row += 1;
+        worksheet.write_string_with_format(row, 0, "数据项", &subheader_fmt)?;
+        worksheet.write_string_with_format(row, 1, "数值", &subheader_fmt)?;
+        worksheet.write_string_with_format(row, 2, "单位", &subheader_fmt)?;
+        
+        row += 1;
+        let fcf_row = row;
+        worksheet.write_string(row, 0, "自由现金流(FCF)")?;
+        worksheet.write_number_with_format(row, 1, latest_fcf, &number_fmt)?;
+        worksheet.write_string(row, 2, "元")?;
+        
+        row += 1;
+        let np_row = row;
+        worksheet.write_string(row, 0, "净利润")?;
+        worksheet.write_number_with_format(row, 1, latest_net_profit, &number_fmt)?;
+        worksheet.write_string(row, 2, "元")?;
+        
+        row += 1;
+        let shares_row = row;
+        worksheet.write_string(row, 0, "总股本")?;
+        worksheet.write_number_with_format(row, 1, total_shares, &number_fmt)?;
+        worksheet.write_string(row, 2, "股")?;
+        
+        // 估值结果部分（使用公式）
+        row += 2;
+        worksheet.write_string_with_format(row, 0, "估值结果（自动计算）", &header_fmt)?;
+        worksheet.merge_range(row, 0, row, 2, "估值结果（自动计算）", &header_fmt)?;
+        
+        row += 1;
+        worksheet.write_string_with_format(row, 0, "估值方法", &subheader_fmt)?;
+        worksheet.write_string_with_format(row, 1, "估值结果", &subheader_fmt)?;
+        worksheet.write_string_with_format(row, 2, "单位", &subheader_fmt)?;
+        
+        // DCF计算公式
+        row += 1;
+        worksheet.write_string(row, 0, "DCF企业价值")?;
+        worksheet.write_formula_with_format(row, 1, 
+            format!("=B{fcf}*(1+B{g_fcf})/(1+B{r})+B{fcf}*(1+B{g_fcf})^2/(1+B{r})^2+B{fcf}*(1+B{g_fcf})^3/(1+B{r})^3+B{fcf}*(1+B{g_fcf})^3*(1+B{g})/(B{r}-B{g})/(1+B{r})^3",
+                fcf = fcf_row + 1, r = r_row + 1, g = g_row + 1, g_fcf = fcf_g_row + 1).as_str(), 
+            &number_fmt)?;
+        worksheet.write_string(row, 2, "元")?;
+        
+        row += 1;
+        let dcf_value_row = row - 1;
+        worksheet.write_string(row, 0, "DCF每股价值")?;
+        worksheet.write_formula_with_format(row, 1, 
+            format!("=B{}/B{}", dcf_value_row + 1, shares_row + 1).as_str(), 
+            &number_fmt)?;
+        worksheet.write_string(row, 2, "元/股")?;
+        
+        // 唐朝估值公式
+        row += 1;
+        worksheet.write_string(row, 0, "唐朝低估价")?;
+        worksheet.write_formula_with_format(row, 1, 
+            format!("=B{np}*(1+B{g})^3/B{rf}/B{shares}",
+                np = np_row + 1, g = np_g_row + 1, rf = low_rf_row + 1, shares = shares_row + 1).as_str(),
+            &number_fmt)?;
+        worksheet.write_string(row, 2, "元/股")?;
+        
+        row += 1;
+        worksheet.write_string(row, 0, "唐朝高估价")?;
+        worksheet.write_formula_with_format(row, 1, 
+            format!("=B{np}*(1+B{g})^3/B{rf}/B{shares}",
+                np = np_row + 1, g = np_g_row + 1, rf = high_rf_row + 1, shares = shares_row + 1).as_str(),
+            &number_fmt)?;
+        worksheet.write_string(row, 2, "元/股")?;
+        
+        row += 1;
+        let low_price_row = row - 2;
+        worksheet.write_string(row, 0, "唐朝安全边际价")?;
+        worksheet.write_formula_with_format(row, 1, 
+            format!("=B{}*0.7", low_price_row + 1).as_str(), 
+            &number_fmt)?;
+        worksheet.write_string(row, 2, "元/股")?;
+        
+        // 使用说明
+        row += 2;
+        worksheet.write_string_with_format(row, 0, "使用说明", &header_fmt)?;
+        worksheet.merge_range(row, 0, row, 2, "使用说明", &header_fmt)?;
+        
+        row += 1;
+        worksheet.write_string(row, 0, "1. 直接修改上方参数值，估值结果会自动更新 ✅")?;
+        worksheet.merge_range(row, 0, row, 2, "1. 直接修改上方参数值，估值结果会自动更新 ✅", &Format::new())?;
+        
+        row += 1;
+        worksheet.write_string(row, 0, "2. 参数说明：")?;
+        worksheet.merge_range(row, 0, row, 2, "2. 参数说明：", &Format::new())?;
+        
+        row += 1;
+        worksheet.write_string(row, 0, "   - 折现率：反映投资风险，通常8%-12%")?;
+        worksheet.merge_range(row, 0, row, 2, "   - 折现率：反映投资风险，通常8%-12%", &Format::new())?;
+        
+        row += 1;
+        worksheet.write_string(row, 0, "   - 永续增长率：长期稳定增长率，通常2%-5%")?;
+        worksheet.merge_range(row, 0, row, 2, "   - 永续增长率：长期稳定增长率，通常2%-5%", &Format::new())?;
+        
+        row += 1;
+        worksheet.write_string(row, 0, "   - FCF增长率：自由现金流增长率")?;
+        worksheet.merge_range(row, 0, row, 2, "   - FCF增长率：自由现金流增长率", &Format::new())?;
+        
+        row += 1;
+        worksheet.write_string(row, 0, "   - 净利润增长率：用于唐朝估值法")?;
+        worksheet.merge_range(row, 0, row, 2, "   - 净利润增长率：用于唐朝估值法", &Format::new())?;
+        
+        // 设置列宽
+        worksheet.set_column_width(0, 30)?;
+        worksheet.set_column_width(1, 20)?;
+        worksheet.set_column_width(2, 30)?;
         
         Ok(())
     }

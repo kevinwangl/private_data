@@ -60,7 +60,13 @@ impl MockDataSource {
         let mut items = HashMap::new();
         items.insert("营业收入".to_string(), Decimal::new(5000000, 0));
         items.insert("营业成本".to_string(), Decimal::new(3000000, 0));
-        items.insert("净利润".to_string(), Decimal::new(800000, 0));
+        items.insert("税金及附加".to_string(), Decimal::new(50000, 0));
+        items.insert("销售费用".to_string(), Decimal::new(300000, 0));
+        items.insert("管理费用".to_string(), Decimal::new(200000, 0));
+        items.insert("研发费用".to_string(), Decimal::new(150000, 0));
+        items.insert("财务费用".to_string(), Decimal::new(50000, 0));
+        items.insert("营业利润".to_string(), Decimal::new(1250000, 0));
+        items.insert("净利润".to_string(), Decimal::new(1000000, 0));
 
         let statement = FinancialStatement {
             stock_code: stock_code.to_string(),
@@ -74,8 +80,8 @@ impl MockDataSource {
             revenue: Decimal::new(5000000, 0),
             operating_cost: Decimal::new(3000000, 0),
             gross_profit: Decimal::new(2000000, 0),
-            core_profit: Decimal::new(1000000, 0),
-            net_profit: Decimal::new(800000, 0),
+            core_profit: Decimal::new(1250000, 0),
+            net_profit: Decimal::new(1000000, 0),
         }
     }
 
