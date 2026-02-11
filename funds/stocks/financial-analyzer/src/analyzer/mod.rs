@@ -99,6 +99,7 @@ impl FinancialAnalyzer {
         // 计算分析指标
         let asset_structure = self.calculator.calculate_asset_structure(&balance_sheets)?;
         let profit_analysis = self.calculator.calculate_profit_ratios(&income_statements)?;
+        let leverage_analysis = self.calculator.calculate_leverage(&income_statements).ok();
 
         // 自动获取总股本
         let total_shares = balance_sheets.first()
@@ -127,6 +128,7 @@ impl FinancialAnalyzer {
             years,
             asset_structure,
             profit_analysis,
+            leverage_analysis,
             valuation: Some(valuation),
             statements,
             sensitivity: None,  // 默认不计算敏感性分析
@@ -150,8 +152,15 @@ impl FinancialAnalyzer {
             .cloned()
             .collect();
 
-        // 获取总股本（从现有估值参数中获取）
-        let total_shares = self.valuator.params.total_shares;
+        // 获取总股本（从资产负债表中读取）
+        let total_shares = result.statements.iter()
+            .find(|s| s.report_type == crate::domain::ReportType::BalanceSheet)
+            .and_then(|s| s.items.get("股本"))
+            .copied()
+            .unwrap_or_else(|| {
+                tracing::warn!("敏感性分析：未找到股本数据，使用默认值1亿股");
+                Decimal::new(100_000_000, 0)
+            });
 
         // 使用新参数创建临时估值器
         let temp_valuator = Valuator::new(params.to_valuation_params(total_shares));

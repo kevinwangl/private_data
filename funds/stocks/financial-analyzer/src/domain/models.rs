@@ -110,6 +110,7 @@ pub struct AnalysisResult {
     pub years: Vec<i32>,
     pub asset_structure: AssetStructureAnalysis,
     pub profit_analysis: ProfitAnalysis,
+    pub leverage_analysis: Option<LeverageAnalysis>,
     pub valuation: Option<crate::analyzer::ValuationResult>,
     pub statements: Vec<FinancialStatement>,  // 添加原始报表数据
     pub sensitivity: Option<crate::analyzer::SensitivityResult>,  // 敏感性分析结果
@@ -130,4 +131,13 @@ pub struct ProfitAnalysis {
     pub gross_margin: Vec<Decimal>,
     pub core_profit_margin: Vec<Decimal>,
     pub net_profit_margin: Vec<Decimal>,
+}
+
+/// 杠杆分析
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LeverageAnalysis {
+    pub years: Vec<i32>,
+    pub operating_leverage: Vec<Decimal>,  // 经营杠杆 DOL
+    pub financial_leverage: Vec<Decimal>,  // 财务杠杆 DFL
+    pub total_leverage: Vec<Decimal>,      // 总杠杆 DTL
 }

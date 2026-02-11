@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","method":"tools/call","params":{"name":"analyze_stock","arguments":{"stock_code":"600519.SH","years":"2021,2020,2019","source":"akshare"}},"id":1}

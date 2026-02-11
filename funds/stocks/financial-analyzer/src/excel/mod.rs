@@ -533,6 +533,9 @@ impl ExcelWriter {
         // DCF估值和EBIT分析
         self.write_valuation_section(worksheet, result, &number_fmt, &subheader_fmt, &highlight_number_fmt)?;
         
+        // 杠杆分析
+        self.write_leverage_section(worksheet, result, &number_fmt, &subheader_fmt)?;
+        
         Self::set_row_heights(worksheet, 0, 35)?;
         Ok(())
     }
@@ -637,6 +640,73 @@ impl ExcelWriter {
         worksheet.write_formula_with_format(32, 7, "=(C19*POWER(1+H28,3))*J30", &highlight_number_fmt)?;
         worksheet.write_formula_with_format(32, 8, "=H33/H20", &highlight_number_fmt)?;
 
+        Ok(())
+    }
+    
+    fn write_leverage_section(&self, worksheet: &mut Worksheet, result: &AnalysisResult,
+                             number_fmt: &Format, subheader_fmt: &Format) -> Result<()> {
+        if result.leverage_analysis.is_some() {
+            let years = &result.asset_structure.years;
+            let num_years = years.len().min(3);
+            
+            // 杠杆分析标题（从第35行开始）
+            worksheet.write_string_with_format(35, 5, "杠杆分析", subheader_fmt)?;
+            
+            // 年份标题
+            for (i, year) in years.iter().take(num_years).enumerate() {
+                worksheet.write_number_with_format(35, 6 + i as u16, *year as f64, subheader_fmt)?;
+            }
+            
+            // 经营杠杆 DOL = EBIT变化率 / 收入变化率
+            // 营业总收入在第3行，持续经营净利润在第19行（作为EBIT替代）
+            worksheet.write_string(36, 5, "经营杠杆(DOL)")?;
+            for i in 0..num_years {
+                let col = 6 + i as u16;
+                let data_col = (b'C' + i as u8) as char;
+                let prev_data_col = (b'C' + i as u8 + 1) as char;
+                
+                if i < num_years - 1 {
+                    // DOL = (净利润变化率) / (收入变化率)
+                    let formula = format!(
+                        "=IF(AND({}19<>0,{}3<>0,ABS(({}3/{}3)-1)>0.0001),(({}19/{}19)-1)/(({}3/{}3)-1),0)",
+                        prev_data_col, prev_data_col,
+                        data_col, prev_data_col,
+                        data_col, prev_data_col,
+                        data_col, prev_data_col
+                    );
+                    worksheet.write_formula_with_format(36, col, formula.as_str(), number_fmt)?;
+                } else {
+                    worksheet.write_string(36, col, "-")?;
+                }
+            }
+            
+            // 财务杠杆 DFL = EBIT / (EBIT - 利息费用)
+            // 持续经营净利润在第19行，财务费用在第10行
+            worksheet.write_string(37, 5, "财务杠杆(DFL)")?;
+            for i in 0..num_years {
+                let col = 6 + i as u16;
+                let data_col = (b'C' + i as u8) as char;
+                
+                // DFL = 净利润 / (净利润 - 财务费用)
+                // 注意：财务费用为负数表示利息收入，所以用减法
+                let formula = format!(
+                    "=IF(AND({}19<>0,({}19-{}10)<>0),{}19/({}19-{}10),1)",
+                    data_col, data_col, data_col, data_col, data_col, data_col
+                );
+                worksheet.write_formula_with_format(37, col, formula.as_str(), number_fmt)?;
+            }
+            
+            // 总杠杆 DTL = DOL × DFL
+            worksheet.write_string(38, 5, "总杠杆(DTL)")?;
+            for i in 0..num_years {
+                let col = 6 + i as u16;
+                let col_letter = (b'G' + i as u8) as char;
+                
+                let formula = format!("={}37*{}38", col_letter, col_letter);
+                worksheet.write_formula_with_format(38, col, formula.as_str(), number_fmt)?;
+            }
+        }
+        
         Ok(())
     }
 

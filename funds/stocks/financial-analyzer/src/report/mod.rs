@@ -1,6 +1,7 @@
 use crate::domain::models::{AnalysisResult, FinancialStatement, ReportType};
 use anyhow::Result;
 use chrono::Local;
+use rust_decimal::prelude::ToPrimitive;
 use std::fs::File;
 use std::io::Write;
 
@@ -141,6 +142,9 @@ impl TextReporter {
         
         report.push_str("\n--- 财务比率 ---\n");
         Self::append_ratios(report, result);
+        
+        report.push_str("\n--- 杠杆分析 ---\n");
+        Self::append_leverage(report, result);
         
         report.push_str("\n--- DCF估值 ---\n");
         Self::append_dcf(report, result);
@@ -284,6 +288,75 @@ impl TextReporter {
         }
     }
     
+    fn append_leverage(report: &mut String, result: &AnalysisResult) {
+        if let Some(leverage) = &result.leverage_analysis {
+            use rust_decimal::prelude::ToPrimitive;
+            
+            let dol: Vec<String> = leverage.operating_leverage.iter()
+                .map(|v| {
+                    let val = v.to_f64().unwrap_or(0.0);
+                    if val.abs() < 0.01 { "-".to_string() } else { format!("{:.2}", val) }
+                })
+                .collect();
+            
+            let dfl: Vec<String> = leverage.financial_leverage.iter()
+                .map(|v| {
+                    let val = v.to_f64().unwrap_or(1.0);
+                    if val.abs() < 0.01 { "-".to_string() } else { format!("{:.2}", val) }
+                })
+                .collect();
+            
+            let dtl: Vec<String> = leverage.total_leverage.iter()
+                .map(|v| {
+                    let val = v.to_f64().unwrap_or(0.0);
+                    if val.abs() < 0.01 { "-".to_string() } else { format!("{:.2}", val) }
+                })
+                .collect();
+            
+            report.push_str(&format!("{:<30} {:>18} {:>18} {:>18}\n", "经营杠杆(DOL)", dol[0], dol[1], dol[2]));
+            report.push_str(&format!("{:<30} {:>18} {:>18} {:>18}\n", "财务杠杆(DFL)", dfl[0], dfl[1], dfl[2]));
+            report.push_str(&format!("{:<30} {:>18} {:>18} {:>18}\n", "总杠杆(DTL)", dtl[0], dtl[1], dtl[2]));
+            
+            // 添加计算公式说明
+            report.push_str("\n--- 杠杆计算公式说明 ---\n");
+            
+            // 获取最近一年的数据用于示例
+            if let (Some(revenue_0), Some(revenue_1)) = (
+                Self::get_raw_income_value(&result.statements, 0, "营业总收入"),
+                Self::get_raw_income_value(&result.statements, 1, "营业总收入")
+            ) {
+                if let (Some(profit_0), Some(profit_1)) = (
+                    Self::get_raw_income_value(&result.statements, 0, "净利润"),
+                    Self::get_raw_income_value(&result.statements, 1, "净利润")
+                ) {
+                    let revenue_change = (revenue_0 / revenue_1 - 1.0) * 100.0;
+                    let profit_change = (profit_0 / profit_1 - 1.0) * 100.0;
+                    
+                    report.push_str("经营杠杆(DOL) = 净利润变化率 / 收入变化率\n");
+                    report.push_str(&format!("  最近一年计算: {:.2}% / {:.2}% = {}\n", 
+                        profit_change, revenue_change, dol[0]));
+                }
+            }
+            
+            if let Some(profit) = Self::get_raw_income_value(&result.statements, 0, "净利润") {
+                if let Some(interest) = Self::get_raw_income_value(&result.statements, 0, "财务费用") {
+                    let ebt = profit - interest;
+                    report.push_str("\n财务杠杆(DFL) = 净利润 / (净利润 - 财务费用)\n");
+                    report.push_str(&format!("  最近一年计算: {:.2}亿 / ({:.2}亿 - {:.2}亿) = {:.2}亿 / {:.2}亿 = {}\n",
+                        profit / 100_000_000.0,
+                        profit / 100_000_000.0,
+                        interest / 100_000_000.0,
+                        profit / 100_000_000.0,
+                        ebt / 100_000_000.0,
+                        dfl[0]));
+                }
+            }
+            
+            report.push_str("\n总杠杆(DTL) = DOL × DFL\n");
+            report.push_str(&format!("  最近一年计算: {} × {} = {}\n", dol[0], dfl[0], dtl[0]));
+        }
+    }
+    
     fn append_dcf(report: &mut String, result: &AnalysisResult) {
         report.push_str("折现率(r): 8%\n");
         report.push_str("永续增长率(g): 4%\n");
@@ -400,17 +473,60 @@ impl TextReporter {
         report.push_str(&format!("{:<30} {:>18} {:>10}\n", "估值方法", "估值结果", "单位"));
         report.push_str(&format!("{}\n", "-".repeat(60)));
         
-        let dcf_value = sensitivity.dcf_enterprise_value.to_string().parse::<f64>().unwrap_or(0.0);
-        let dcf_price = sensitivity.dcf_price_per_share.to_string().parse::<f64>().unwrap_or(0.0);
-        let low_price = sensitivity.tangchao_low_estimate.to_string().parse::<f64>().unwrap_or(0.0);
-        let high_price = sensitivity.tangchao_high_estimate.to_string().parse::<f64>().unwrap_or(0.0);
-        let safety_price = sensitivity.tangchao_safety_margin_price.to_string().parse::<f64>().unwrap_or(0.0);
+        let dcf_value = sensitivity.dcf_enterprise_value.to_f64().unwrap_or(0.0);
+        let dcf_price = sensitivity.dcf_price_per_share.to_f64().unwrap_or(0.0);
+        let low_price = sensitivity.tangchao_low_estimate.to_f64().unwrap_or(0.0);
+        let high_price = sensitivity.tangchao_high_estimate.to_f64().unwrap_or(0.0);
+        let safety_price = sensitivity.tangchao_safety_margin_price.to_f64().unwrap_or(0.0);
         
         report.push_str(&format!("{:<30} {:>18} {:>10}\n", "DCF企业价值", Self::format_number(dcf_value), "元"));
         report.push_str(&format!("{:<30} {:>18.2} {:>10}\n", "DCF每股价值", dcf_price, "元/股"));
         report.push_str(&format!("{:<30} {:>18.2} {:>10}\n", "唐朝低估价", low_price, "元/股"));
         report.push_str(&format!("{:<30} {:>18.2} {:>10}\n", "唐朝高估价", high_price, "元/股"));
         report.push_str(&format!("{:<30} {:>18.2} {:>10}\n", "唐朝安全边际价", safety_price, "元/股"));
+        
+        // 获取基础FCF用于详细计算说明
+        let base_fcf = result.statements.iter()
+            .find(|s| s.report_type == crate::domain::ReportType::CashflowStatement)
+            .and_then(|s| {
+                let operating = s.items.get("经营活动产生的现金流量净额").copied().unwrap_or_default();
+                let capex = s.items.get("购建固定资产、无形资产和其他长期资产支付的现金").copied().unwrap_or_default();
+                Some((operating - capex).to_f64().unwrap_or(0.0) / 100_000_000.0)
+            })
+            .unwrap_or(0.0);
+        
+        let r = sensitivity.params.discount_rate;
+        let g = sensitivity.params.perpetual_growth_rate;
+        let fcf_g = sensitivity.params.fcf_growth_rate;
+        
+        // 计算3年现值
+        let fcf1 = base_fcf * (1.0 + fcf_g);
+        let fcf2 = base_fcf * (1.0 + fcf_g).powi(2);
+        let fcf3 = base_fcf * (1.0 + fcf_g).powi(3);
+        let pv1 = fcf1 / (1.0 + r);
+        let pv2 = fcf2 / (1.0 + r).powi(2);
+        let pv3 = fcf3 / (1.0 + r).powi(3);
+        let pv_sum = pv1 + pv2 + pv3;
+        
+        // 计算终值
+        let terminal_value = fcf3 * (1.0 + g) / (r - g);
+        let pv_terminal = terminal_value / (1.0 + r).powi(3);
+        
+        report.push_str("\n--- 计算公式说明 ---\n");
+        report.push_str("DCF估值法（现金流折现模型）：\n");
+        report.push_str(&format!("  基础FCF(最近一年): {:.2}亿元\n", base_fcf));
+        report.push_str(&format!("  前3年现值: {:.2}亿 + {:.2}亿 + {:.2}亿 = {:.2}亿元\n", pv1, pv2, pv3, pv_sum));
+        report.push_str(&format!("  终值现值: {:.2}亿元\n", pv_terminal));
+        report.push_str(&format!("  企业价值 = {:.2}亿 + {:.2}亿 = {:.2}亿元\n", pv_sum, pv_terminal, pv_sum + pv_terminal));
+        report.push_str(&format!("  每股价值 = {:.2}亿 / 总股本 = {:.2}元/股\n\n", pv_sum + pv_terminal, dcf_price));
+        
+        report.push_str("唐朝估值法（PE倍数法）：\n");
+        report.push_str(&format!("  3年后净利润 = 当前净利润 × (1 + {}%)^3\n", sensitivity.params.net_profit_growth_rate * 100.0));
+        report.push_str(&format!("  低估PE = 1 / {}% = {:.0}倍\n", sensitivity.params.low_risk_free_rate * 100.0, 1.0 / sensitivity.params.low_risk_free_rate));
+        report.push_str(&format!("  高估PE = 1 / {}% = {:.0}倍\n", sensitivity.params.high_risk_free_rate * 100.0, 1.0 / sensitivity.params.high_risk_free_rate));
+        report.push_str(&format!("  低估价 = 3年后净利润 × 低估PE / 总股本 = {:.2}元/股\n", low_price));
+        report.push_str(&format!("  高估价 = 3年后净利润 × 高估PE / 总股本 = {:.2}元/股\n", high_price));
+        report.push_str(&format!("  安全边际价 = 低估价 × 0.7 = {:.2} × 0.7 = {:.2}元/股\n", low_price, safety_price));
         
         report.push_str("\n--- 使用说明 ---\n");
         report.push_str("1. 可以通过修改参数重新运行分析，观察估值结果变化\n");
