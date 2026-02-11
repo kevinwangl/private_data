@@ -6,7 +6,15 @@ use rust_decimal::prelude::ToPrimitive;
 use std::path::Path;
 
 mod helpers;
+mod descriptions;
+mod sheet_builder;
+mod enhanced_sensitivity;
+mod enhanced_profit_cashflow;
+mod enhanced_balance_sheet;
+mod enhanced_comprehensive;
 pub use helpers::{DataHelper, ExcelFormatter};
+use descriptions::IndicatorDescriptions;
+use sheet_builder::SheetBuilder;
 
 pub struct ExcelWriter;
 
@@ -16,8 +24,10 @@ impl ExcelWriter {
     }
 
     pub fn generate(&self, result: &AnalysisResult, output_path: &Path) -> Result<()> {
+        let stock_code = &result.stock_code;
         let mut workbook = Workbook::new();
 
+        // 原版sheets（保留用于对比）
         self.write_sheet1_asset_liability(&mut workbook, result)?;
         self.write_sheet2_operating_financial(&mut workbook, result)?;
         self.write_sheet3_profit_cashflow(&mut workbook, result)?;
@@ -27,6 +37,15 @@ impl ExcelWriter {
         // 如果有敏感性分析结果，添加敏感性分析工作表
         if result.sensitivity.is_some() {
             self.write_sheet6_sensitivity(&mut workbook, result)?;
+        }
+        
+        // 优化版sheets（新增）
+        enhanced_balance_sheet::write_enhanced_balance_sheet(&mut workbook, result, stock_code)?;
+        enhanced_profit_cashflow::write_enhanced_profit_cashflow_sheet(&mut workbook, result, stock_code)?;
+        enhanced_comprehensive::write_enhanced_comprehensive_sheet(&mut workbook, result, stock_code)?;
+        
+        if result.sensitivity.is_some() {
+            enhanced_sensitivity::write_enhanced_sensitivity_sheet(&mut workbook, result, stock_code)?;
         }
 
         workbook.save(output_path)?;
@@ -194,40 +213,15 @@ impl ExcelWriter {
         // Calculate and write ratios directly - 使用高亮格式
         worksheet.write_string_with_format(21, 0, "资产比率", &subheader_fmt)?;
         worksheet.write_string_with_format(21, 1, "经营性资产占总资产比率", &subheader_fmt)?;
-        
-        // Calculate operating asset ratio for each year
-        for (year_idx, _year) in years.iter().enumerate() {
-            let total_assets = self.get_balance_sheet_value(&result.statements, year_idx, "资产总计");
-            if total_assets > 0.0 {
-                let operating_assets: f64 = ["货币资金", "固定资产", "应收票据", "应收账款", "预付款项", "存货", "无形资产"]
-                    .iter()
-                    .map(|acc| self.get_balance_sheet_value(&result.statements, year_idx, acc))
-                    .sum();
-                let ratio = operating_assets / total_assets;
-                worksheet.write_number_with_format(21, 2 + year_idx as u16, ratio, &highlight_fmt)?;
-            } else {
-                worksheet.write_number_with_format(21, 2 + year_idx as u16, 0.0, &highlight_fmt)?;
-            }
-        }
+        worksheet.write_formula_with_format(21, 2, "=IF(C21=0,0,SUM(C4:C10)/C21)", &highlight_fmt)?;
+        worksheet.write_formula_with_format(21, 3, "=IF(D21=0,0,SUM(D4:D10)/D21)", &highlight_fmt)?;
+        worksheet.write_formula_with_format(21, 4, "=IF(E21=0,0,SUM(E4:E10)/E21)", &highlight_fmt)?;
 
         worksheet.write_string_with_format(22, 0, "资产比率", &subheader_fmt)?;
         worksheet.write_string_with_format(22, 1, "金融性资产占总资产比率", &subheader_fmt)?;
-        
-        // Calculate financial asset ratio for each year
-        for (year_idx, _year) in years.iter().enumerate() {
-            let total_assets = self.get_balance_sheet_value(&result.statements, year_idx, "资产总计");
-            if total_assets > 0.0 {
-                let financial_assets: f64 = ["交易性金融资产", "长期股权投资", "持有至到期投资", "投资性房地产",
-                    "长期应收款", "应收利息", "应收股利", "递延所得税资产", "一年内到期的非流动资产", "其他非流动资产"]
-                    .iter()
-                    .map(|acc| self.get_balance_sheet_value(&result.statements, year_idx, acc))
-                    .sum();
-                let ratio = financial_assets / total_assets;
-                worksheet.write_number_with_format(22, 2 + year_idx as u16, ratio, &percent_fmt)?;
-            } else {
-                worksheet.write_number_with_format(22, 2 + year_idx as u16, 0.0, &percent_fmt)?;
-            }
-        }
+        worksheet.write_formula_with_format(22, 2, "=IF(C21=0,0,SUM(C11:C19)/C21)", &highlight_fmt)?;
+        worksheet.write_formula_with_format(22, 3, "=IF(D21=0,0,SUM(D11:D19)/D21)", &highlight_fmt)?;
+        worksheet.write_formula_with_format(22, 4, "=IF(E21=0,0,SUM(E11:E19)/E21)", &highlight_fmt)?;
 
         // Right side - Liabilities with data
         let liability_mapping = vec![

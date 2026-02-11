@@ -8,11 +8,32 @@ use rust_decimal::Decimal;
 mod calculator;
 mod valuation;
 mod sensitivity;
+#[cfg(test)]
+mod tests;
 
 use calculator::RatioCalculator;
 pub use valuation::{Valuator, ValuationResult, ValuationParams};
 pub use sensitivity::{SensitivityParams, SensitivityResult};
 
+/// 财务分析器
+/// 
+/// 负责执行完整的财务分析流程，包括：
+/// - 资产结构分析
+/// - 利润分析
+/// - 杠杆分析
+/// - 估值分析
+/// - 敏感性分析
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use financial_analyzer::analyzer::FinancialAnalyzer;
+/// use financial_analyzer::domain::FinancialStatement;
+/// 
+/// let statements = vec![/* ... */];
+/// let analyzer = FinancialAnalyzer::new(statements);
+/// let result = analyzer.analyze()?;
+/// ```
 pub struct FinancialAnalyzer {
     calculator: RatioCalculator,
     validator: Option<DataValidator>,
@@ -20,6 +41,9 @@ pub struct FinancialAnalyzer {
 }
 
 impl FinancialAnalyzer {
+    /// 创建新的财务分析器实例
+    /// 
+    /// 使用默认的估值参数
     pub fn new() -> Self {
         Self {
             calculator: RatioCalculator::new(),
@@ -28,16 +52,42 @@ impl FinancialAnalyzer {
         }
     }
 
+    /// 设置数据验证器
+    /// 
+    /// # Arguments
+    /// 
+    /// * `validator` - 数据验证器实例
     pub fn with_validator(mut self, validator: DataValidator) -> Self {
         self.validator = Some(validator);
         self
     }
 
+    /// 设置估值参数
+    /// 
+    /// # Arguments
+    /// 
+    /// * `params` - 估值参数（DCF和唐朝估值法）
     pub fn with_valuation_params(mut self, params: ValuationParams) -> Self {
         self.valuator = Valuator::new(params);
         self
     }
 
+    /// 执行财务分析
+    /// 
+    /// # Arguments
+    /// 
+    /// * `stock_code` - 股票代码（如 600519.SH）
+    /// * `years` - 分析年份列表
+    /// * `data_source` - 数据源实现
+    /// 
+    /// # Returns
+    /// 
+    /// 返回完整的分析结果，包括：
+    /// - 财务报表数据
+    /// - 资产结构分析
+    /// - 利润分析
+    /// - 杠杆分析
+    /// - 估值结果
     pub async fn analyze(
         &self,
         stock_code: &str,

@@ -511,6 +511,41 @@ impl DataSource for AkshareClient {
             items_map.insert("流动资产合计".to_string(), Decimal::from_f64_retain(item.current_assets.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
             items_map.insert("非流动资产合计".to_string(), Decimal::from_f64_retain(item.non_current_assets.unwrap_or(0.0)).unwrap_or(Decimal::ZERO));
 
+            // 填充经营性资产
+            let mut operating_assets = AssetGroup::new();
+            if let Some(v) = items_map.get("货币资金") { operating_assets.add("货币资金".to_string(), *v); }
+            if let Some(v) = items_map.get("固定资产") { operating_assets.add("固定资产".to_string(), *v); }
+            if let Some(v) = items_map.get("应收票据") { operating_assets.add("应收票据".to_string(), *v); }
+            if let Some(v) = items_map.get("应收账款") { operating_assets.add("应收账款".to_string(), *v); }
+            if let Some(v) = items_map.get("预付款项") { operating_assets.add("预付款项".to_string(), *v); }
+            if let Some(v) = items_map.get("存货") { operating_assets.add("存货".to_string(), *v); }
+            if let Some(v) = items_map.get("无形资产") { operating_assets.add("无形资产".to_string(), *v); }
+
+            // 填充金融性资产
+            let mut financial_assets = AssetGroup::new();
+            if let Some(v) = items_map.get("交易性金融资产") { financial_assets.add("交易性金融资产".to_string(), *v); }
+            if let Some(v) = items_map.get("长期股权投资") { financial_assets.add("长期股权投资".to_string(), *v); }
+            if let Some(v) = items_map.get("投资性房地产") { financial_assets.add("投资性房地产".to_string(), *v); }
+            if let Some(v) = items_map.get("递延所得税资产") { financial_assets.add("递延所得税资产".to_string(), *v); }
+
+            // 填充经营性负债
+            let mut operating_liabilities = LiabilityGroup::new();
+            if let Some(v) = items_map.get("应付票据") { operating_liabilities.add("应付票据".to_string(), *v); }
+            if let Some(v) = items_map.get("应付账款") { operating_liabilities.add("应付账款".to_string(), *v); }
+            if let Some(v) = items_map.get("预收款项") { operating_liabilities.add("预收款项".to_string(), *v); }
+            if let Some(v) = items_map.get("应付职工薪酬") { operating_liabilities.add("应付职工薪酬".to_string(), *v); }
+            if let Some(v) = items_map.get("应交税费") { operating_liabilities.add("应交税费".to_string(), *v); }
+            if let Some(v) = items_map.get("合同负债") { operating_liabilities.add("合同负债".to_string(), *v); }
+            if let Some(v) = items_map.get("递延所得税负债") { operating_liabilities.add("递延所得税负债".to_string(), *v); }
+
+            // 填充金融性负债
+            let mut financial_liabilities = LiabilityGroup::new();
+            if let Some(v) = items_map.get("短期借款") { financial_liabilities.add("短期借款".to_string(), *v); }
+            if let Some(v) = items_map.get("长期借款") { financial_liabilities.add("长期借款".to_string(), *v); }
+            if let Some(v) = items_map.get("应付债券") { financial_liabilities.add("应付债券".to_string(), *v); }
+            if let Some(v) = items_map.get("交易性金融负债") { financial_liabilities.add("交易性金融负债".to_string(), *v); }
+            if let Some(v) = items_map.get("一年内到期的非流动负债") { financial_liabilities.add("一年内到期的非流动负债".to_string(), *v); }
+
             let statement = FinancialStatement {
                 stock_code: stock_code.to_string(),
                 report_date,
@@ -520,10 +555,10 @@ impl DataSource for AkshareClient {
 
             sheets.push(BalanceSheet {
                 statement,
-                operating_assets: AssetGroup::new(),
-                financial_assets: AssetGroup::new(),
-                operating_liabilities: LiabilityGroup::new(),
-                financial_liabilities: LiabilityGroup::new(),
+                operating_assets,
+                financial_assets,
+                operating_liabilities,
+                financial_liabilities,
             });
         }
 

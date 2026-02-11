@@ -6,7 +6,9 @@ mod cli;
 mod utils;
 mod validation;
 mod report;
+mod error;
 
+pub use error::{AnalyzerError, Result as AnalyzerResult};
 use anyhow::Result;
 use clap::Parser;
 use cli::{Cli, Commands};
