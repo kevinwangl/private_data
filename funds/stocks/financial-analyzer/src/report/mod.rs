@@ -313,9 +313,11 @@ impl TextReporter {
                 })
                 .collect();
             
-            report.push_str(&format!("{:<30} {:>18} {:>18} {:>18}\n", "经营杠杆(DOL)", dol[0], dol[1], dol[2]));
-            report.push_str(&format!("{:<30} {:>18} {:>18} {:>18}\n", "财务杠杆(DFL)", dfl[0], dfl[1], dfl[2]));
-            report.push_str(&format!("{:<30} {:>18} {:>18} {:>18}\n", "总杠杆(DTL)", dtl[0], dtl[1], dtl[2]));
+            if dol.len() >= 3 && dfl.len() >= 3 && dtl.len() >= 3 {
+                report.push_str(&format!("{:<30} {:>18} {:>18} {:>18}\n", "经营杠杆(DOL)", dol[0], dol[1], dol[2]));
+                report.push_str(&format!("{:<30} {:>18} {:>18} {:>18}\n", "财务杠杆(DFL)", dfl[0], dfl[1], dfl[2]));
+                report.push_str(&format!("{:<30} {:>18} {:>18} {:>18}\n", "总杠杆(DTL)", dtl[0], dtl[1], dtl[2]));
+            }
             
             // 添加计算公式说明
             report.push_str("\n--- 杠杆计算公式说明 ---\n");
