@@ -1,9 +1,10 @@
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Vector;
+import java.util.ArrayList;
 
 /**
  *
@@ -130,11 +131,9 @@ public class TLVParser {
 		byte value = -1;
 		try {
 			value = TLVUtils.readByte(in);
+			TLVUtils.writeByte(out, value);
 			if (TLVUtils.highBitEqualsOne(value)) {
 				parseTagRemaining(in, out);
-			} else {
-				TLVUtils.writeByte(out, value);
-				return;
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -220,7 +219,13 @@ public class TLVParser {
 				// 判断当前的标记是否为结构化对象
 				if (TLVUtils.thirdBitEqualsOne(tag[0])) {
 					element.setConstruct(true);
-					TLVParser childParser = new TLVParser(mInputStream);
+					byte[] childData = new byte[(int) length];
+					try {
+						mInputStream.read(childData);
+					} catch (IOException e) {
+						throw new TLVParserException("TLV read construct value Fail");
+					}
+					TLVParser childParser = new TLVParser(new ByteArrayInputStream(childData));
 					while (childParser.available() > 0) {
 						TLVElement child = childParser.parseTLVElement();
 						if (child != null) {
@@ -242,8 +247,8 @@ public class TLVParser {
 		}
 	}
 
-	public Vector<TLVElement> parseAllTLVElement() throws TLVParserException{
-		Vector<TLVElement> tlv = new Vector<TLVElement>();
+	public ArrayList<TLVElement> parseAllTLVElement() throws TLVParserException{
+		ArrayList<TLVElement> tlv = new ArrayList<TLVElement>();
 		while(available() > 0){
 			TLVElement e = parseTLVElement();
 			if(null != e){

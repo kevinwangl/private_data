@@ -20,7 +20,7 @@ public class TLVSerializer {
 
 	private ByteArrayOutputStream mOutputStream;
 
-	private static int mOffset = 0;
+	private int mOffset = 0;
 
 	/**
 	 * 构造函数
@@ -68,7 +68,7 @@ public class TLVSerializer {
 			throws TLVParserException {
 		try {
 			byte[] value = TLVUtils.hex2Bin(tag);
-			TLVSerializer.mOffset += value.length;
+			this.mOffset += value.length;
 			out.write(value);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -92,7 +92,7 @@ public class TLVSerializer {
 		ByteArrayOutputStream buffer = writeLengthImpl(len);
 		if (buffer != null) {
 			byte[] lengthBuffer = buffer.toByteArray();
-			TLVSerializer.mOffset += lengthBuffer.length;
+			this.mOffset += lengthBuffer.length;
 			try {
 				out.write(lengthBuffer);
 			} catch (IOException e) {
@@ -121,7 +121,7 @@ public class TLVSerializer {
 		ByteArrayOutputStream buffer = writeLengthImpl(constructLen);
 		if (buffer != null) {
 			byte[] lengthBuffer = buffer.toByteArray();
-			TLVSerializer.mOffset += lengthBuffer.length;
+			this.mOffset += lengthBuffer.length;
 			TLVUtils.insertBytes(lengthBuffer, outPut, start);
 		}
 	}
@@ -137,11 +137,12 @@ public class TLVSerializer {
 	 */
 	private ByteArrayOutputStream writeLengthImpl(long constructLen)
 			throws TLVParserException {
+		ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 		if (constructLen == 0) {
-			return null;
+			buffer.write(0);
+			return buffer;
 		}
 
-		ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 		byte[] lenArray = TLVUtils.convertNumberToBytes(constructLen);
 		byte[] lenHeadBuffer = TLVUtils.convertNumberToBytes(lenArray.length);
 		if (constructLen <= 127) {
@@ -154,7 +155,7 @@ public class TLVSerializer {
 						"writeLengthImpl less 127 write is error");
 			}
 		} else {
-			byte lenHead = (byte) (lenHeadBuffer[0] & TLVUtils.FIRST_MASK);
+			byte lenHead = (byte) (lenArray.length | TLVUtils.FIRST_MASK);
 			try {
 				buffer.write(lenHead);
 				buffer.write(lenArray);
@@ -178,7 +179,7 @@ public class TLVSerializer {
 	 *             一般不会出现，除非内存不足
 	 */
 	public void writeValue(byte[] value, OutputStream out) throws IOException {
-		TLVSerializer.mOffset += value.length;
+		this.mOffset += value.length;
 		out.write(value);
 	}
 
@@ -207,18 +208,14 @@ public class TLVSerializer {
 				}
 			}
 		} else {
-			long constructLen = 0;
-
 			// 当前结构化对象写入字节起始位置
-			int startPos = size();
-			int endPos = 0;
-			TLVSerializer childSerializer = new TLVSerializer(mOutputStream);
+			int startPos = mOutputStream.size();
 			for (int i = 0; i < element.getChildren().size(); i++) {
 				TLVElement child = element.getChild(i);
-				child.write(childSerializer);
+				child.write(this);
 			}
-			endPos = size();
-			constructLen = endPos - startPos;
+			int endPos = mOutputStream.size();
+			long constructLen = endPos - startPos;
 			writeConstructLength(constructLen, mOutputStream, startPos);
 		}
 	}
@@ -232,7 +229,7 @@ public class TLVSerializer {
 	 *             除非内存不足，否则不会出现
 	 */
 	public int size() {
-		return TLVSerializer.mOffset;
+		return this.mOffset;
 	}
 
 	/**
@@ -259,7 +256,7 @@ public class TLVSerializer {
 	 *             TLV解析失败
 	 */
 	void flush() throws TLVParserException {
-		TLVSerializer.mOffset = 0;
+		this.mOffset = 0;
 		try {
 			mOutputStream.flush();
 		} catch (IOException e) {

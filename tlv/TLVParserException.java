@@ -13,6 +13,8 @@
  */
 
 public class TLVParserException extends Exception {
+	private static final long serialVersionUID = 1L;
+
 	private String mExtMessage;
 
 	/**
@@ -23,6 +25,18 @@ public class TLVParserException extends Exception {
 	 */
 	public TLVParserException(String s) {
 		super(s);
+	}
+
+	/**
+	 * @brief TLV解析异常类构造函数（带原因）
+	 *
+	 * @param s
+	 *            错误信息
+	 * @param cause
+	 *            原始异常
+	 */
+	public TLVParserException(String s, Throwable cause) {
+		super(s, cause);
 	}
 
 	/**

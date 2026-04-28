@@ -1,44 +1,35 @@
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Vector;
 
 public class Main {
     public static void main(String[] args) {
-        String emv = "911001020304050607080910111213141516720E1111222222222233334444444444";
+        // 测试数据 1：原始数据
+        printTLV("911001020304050607080910111213141516720E1111222222222233334444444444");
+
+        // 测试数据 2：含 Issuer Script (9F18 + 86 APDU GET DATA)
+        // 72 = Issuer Script Template 2
+        //   9F18 04 00010204 = Script ID
+        //   86 05 80CA9F3600 = Script Command (APDU: GET DATA for ATC)
+        printTLV("720F9F180400010204860580CA9F3600");
+    }
+
+    private static void printTLV(String hex) {
         byte[] bin;
         try {
-            bin = TLVUtils.hex2Bin(emv);
+            bin = TLVUtils.hex2Bin(hex);
         } catch (TLVParserException e) {
-            throw new RuntimeException(e);
+            System.err.println("Invalid hex: " + e.getMessage());
+            return;
         }
         InputStream input = new ByteArrayInputStream(bin);
         TLVParser parser = new TLVParser(input);
-        Vector<TLVElement> elements;
         try {
-            elements = parser.parseAllTLVElement();
-            System.out.println(elements.size());
-            for (TLVElement element : elements) {
-                String tag = element.getTag();
-                byte[] byte_value = element.getValue();
-                boolean isPrimitive = element.isPrimitive();
-                if(isPrimitive){
-                    String value = TLVUtils.convertBytesToString(byte_value);
-                    System.out.println("Tag = "+tag);
-                    System.out.println("Value = "+value);
-                }else{
-                   ArrayList<TLVElement> child = element.getChildren();
-                   TLVElement child_element = child.get(0);
-                   String value = TLVUtils.convertBytesToString(child_element.getValue());
-                   System.out.println("Tag = "+tag);
-                   System.out.println("Child Tag = "+child_element.getTag());
-                   System.out.println("Value = "+value);
-                }
-            }
-
-
+            ArrayList<TLVElement> elements = parser.parseAllTLVElement();
+            TLVPrettyPrinter printer = new TLVPrettyPrinter();
+            printer.print(bin, elements);
         } catch (TLVParserException e) {
-            throw new RuntimeException(e);
+            System.err.println("Parse error: " + e.getMessage());
         }
     }
 }

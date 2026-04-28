@@ -164,22 +164,23 @@ public class TLVUtils {
 	public static byte[] convertNumberToBytes(long srcLen)
 			throws TLVParserException {
 		if (srcLen == 0) {
-			return null;
+			return new byte[]{0};
 		}
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		DataOutputStream dataOutput = new DataOutputStream(out);
 		boolean flag = false;
 		for (int i = 7; i >= 0; i--) {
 			byte element = (byte) (srcLen >>> (8 * i));
-			if (element != 0 && !flag) {
-				flag = true;
-				try {
-					dataOutput.writeByte(element);
-				} catch (IOException e) {
-					e.printStackTrace();
-					throw new TLVParserException(
-							"converNumberToBytes convert bytes error");
-				}
+			if (!flag && element == 0) {
+				continue;
+			}
+			flag = true;
+			try {
+				dataOutput.writeByte(element);
+			} catch (IOException e) {
+				e.printStackTrace();
+				throw new TLVParserException(
+						"converNumberToBytes convert bytes error");
 			}
 		}
 		return out.toByteArray();
